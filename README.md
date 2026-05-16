@@ -1,16 +1,24 @@
+<div align="center">
+
+<img src="https://img.shields.io/badge/AI%20Lab-ML%2FLLM%20Engineering%20Platform-8b5cf6?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiM4YjVjZjYiLz48dGV4dCB4PSIzMiIgeT0iNDUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLHNlcmlmIiBmb250LXNpemU9IjM2IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QTwvdGV4dD48L3N2Zz4=" alt="AI Lab" />
+
 # AI Lab — ML/LLM Engineering Platform
 
-<p align="center">
-  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"></a>
-  <a href="https://bun.sh"><img src="https://img.shields.io/badge/runtime-Bun-%23f9f9f9" alt="Bun"></a>
-  <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/language-TypeScript-3178C6" alt="TypeScript"></a>
-  <a href="https://opencode.ai"><img src="https://img.shields.io/badge/OpenCode-native-6366f1" alt="OpenCode Native"></a>
+<p>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-8b5cf6?style=flat-square" alt="MIT License" /></a>
+  <a href="https://bun.sh"><img src="https://img.shields.io/badge/runtime-Bun-f9f9f9?style=flat-square&logo=bun&logoColor=black" alt="Bun" /></a>
+  <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/language-TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" /></a>
+  <a href="https://opencode.ai"><img src="https://img.shields.io/badge/OpenCode-native-6366f1?style=flat-square" alt="OpenCode Native" /></a>
+  <img src="https://img.shields.io/badge/self--hosted-yes-10b981?style=flat-square" alt="Self Hosted" />
+  <img src="https://img.shields.io/badge/providers-10-f59e0b?style=flat-square" alt="10 Providers" />
 </p>
 
-<p align="center">
-  <strong>One platform. Ten providers. Zero friction.</strong><br>
-  The missing engineering layer for AI developers who live in OpenCode.
-</p>
+**One platform. Ten providers. Zero friction.**
+*The missing engineering layer for AI developers who live in OpenCode.*
+
+[**Live Demo →**](https://ainjiner.github.io) · [**Docs →**](https://github.com/ainjiner/ai-lab/tree/main/docs) · [**Support the project →**](https://github.com/sponsors/ainjiner)
+
+</div>
 
 ---
 
@@ -31,7 +39,7 @@ AI Lab solves this with one premise: **the platform should adapt to your workflo
 | Cost overruns | Real-time tracking + projections + budget alerts |
 | Tool sprawl | One self-hosted instance replaces 5+ tools |
 | Config sync overhead | `config sync opencode` bridges your AI editor in one command |
-| Per-seat licensing | Free. Unlimited users. Self-hosted. |
+| Per-seat licensing | **Free. Unlimited users. Self-hosted.** |
 
 ---
 
@@ -56,12 +64,12 @@ AI Lab is the only ML/LLM engineering platform that treats OpenCode as a first-c
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    AI Lab + OpenCode                          │
+│                    AI Lab + OpenCode                        │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  ml-engine config sync opencode                              │
+│  ml-engine config sync opencode                             │
 │       ↓                                                     │
-│  Reads provider instances from SQLite store                  │
+│  Reads provider instances from SQLite store                 │
 │       ↓                                                     │
 │  Generates ~/.config/opencode/opencode.json                 │
 │  Generates ~/.local/share/opencode/auth.json                │
@@ -85,7 +93,7 @@ AI Lab is the only ML/LLM engineering platform that treats OpenCode as a first-c
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         AI Lab Platform                          │
+│                         AI Lab Platform                         │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌─────────────────────┐     ┌──────────────────────────────┐  │
@@ -95,7 +103,7 @@ AI Lab is the only ML/LLM engineering platform that treats OpenCode as a first-c
 │  └─────────┬───────────┘     └──────────┬───────────────────┘  │
 │            │                            │                       │
 │            └──────────┬─────────────────┘                       │
-│                       ↓ HTTP                                   │
+│                       ↓ HTTP                                    │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │               REST API (Hono, Port 4321)                  │  │
 │  │   65+ endpoints | Provider | Model | Config | Analytics  │  │
@@ -109,23 +117,23 @@ AI Lab is the only ML/LLM engineering platform that treats OpenCode as a first-c
 │  │  ├──────────┤ ├──────────┤ ├──────────┤ ├──────────┤    │  │
 │  │  │ 10       │ │ Search   │ │ OpenCode │ │Usage     │    │  │
 │  │  │providers │ │ Compare  │ │ Cursor   │ │Cost proj │    │  │
-│  │  │Scanning  │ │Aliases   │ │ Continue │ │Alerts    │    │  │
+│  │  │Scanning  │ │ Aliases  │ │ Continue │ │Alerts    │    │  │
 │  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘    │  │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────────────────┐    │  │
-│  │  │Experiment│ │Orchestra │ │ Utils                │    │  │
-│  │  │ Tracker  │ │  tion    │ │ Env import | Export  │    │  │
-│  │  └──────────┘ └──────────┘ └──────────────────────┘    │  │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────────────────┐     │  │
+│  │  │Experiment│ │Orchestra-│ │ Utils                │     │  │
+│  │  │ Tracker  │ │  tion    │ │ Env import | Export  │     │  │
+│  │  └──────────┘ └──────────┘ └──────────────────────┘     │  │
 │  └──────────────────────────┬───────────────────────────────┘  │
 │                             ↓                                   │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │               SQLite Store (bun:sqlite)                   │  │
 │  │  ~/.local/share/ml-engine/engine.db                      │  │
 │  │  Auto-migration | Tables: providers, models,             │  │
-│  │  experiments, usage, budgets, settings                  │  │
+│  │  experiments, usage, budgets, settings                   │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │   @ai-lab/openai-compatible (forked AI SDK)               │  │
+│  │   @ai-lab/openai-compatible (forked AI SDK)              │  │
 │  │   AI SDK v4 fork with minChunkSize SSE fix               │  │
 │  │   Replaces legacy SSE proxy entirely                     │  │
 │  └──────────────────────────────────────────────────────────┘  │
@@ -140,8 +148,8 @@ AI Lab is the only ML/LLM engineering platform that treats OpenCode as a first-c
 ```bash
 # 1. Prerequisites
 curl -fsSL https://bun.sh/install | bash
-git clone https://github.com/sandikodev/baseten-workspace-manager.git
-cd baseten-workspace-manager
+git clone https://github.com/ainjiner/ai-lab.git
+cd ai-lab
 
 # 2. Install
 bun install
@@ -149,11 +157,11 @@ bun install
 # 3. Build core engine
 bun run build:core
 
-# 4. Add your provider
-bun run cli provider add baseten production YOUR_BASETEN_API_KEY
+# 4. Add your first provider
+bun run cli provider add openai production YOUR_OPENAI_API_KEY
 
-# 5. Scan models
-bun run cli provider scan baseten-production
+# 5. Scan available models
+bun run cli provider scan openai-production
 
 # 6. Sync to OpenCode (optional)
 bun run cli config sync opencode
@@ -161,7 +169,7 @@ bun run cli config sync opencode
 # 7. Start the API (port 4321)
 bun run api
 
-# 8. Start the Web UI (separate terminal)
+# 8. Start the Web UI (separate terminal, port 5173)
 bun run dev:web
 ```
 
@@ -335,6 +343,59 @@ The API runs on `http://localhost:4321/api`.
 
 ---
 
+## Programmatic Usage
+
+```typescript
+import {
+  providerRegistry,
+  modelCatalog,
+  configManager,
+  experimentTracker,
+  analyticsTracker,
+  orchestrationManager,
+  exportAll,
+  importFromEnv,
+} from "@ml-engine/core";
+
+// Add a provider instance
+const instance = providerRegistry.addInstance({
+  providerId: "openai",
+  name: "production",
+  apiKey: "sk-...",
+});
+
+// Scan for models
+const scan = await modelCatalog.scanModels(instance.id);
+
+// Create an experiment
+const exp = experimentTracker.create({
+  name: "GPT-4o vs Claude 3.5 Sonnet",
+  userPrompt: "Explain quantum entanglement simply",
+  providerId: instance.id,
+  modelId: "gpt-4o",
+});
+
+// Save a result
+experimentTracker.saveResult(exp.id, {
+  output: "Quantum entanglement is like...",
+  tokensPrompt: 150,
+  tokensCompletion: 75,
+  latencyMs: 2400,
+  costUsd: 0.0025,
+});
+
+// Sync config to OpenCode
+configManager.syncToTarget("opencode");
+
+// Export everything for backup or team sharing
+const backup = exportAll();
+
+// Auto-import from environment
+const result = importFromEnv("PROVIDER_");
+```
+
+---
+
 ## Storage
 
 All data persists in SQLite at `~/.local/share/ml-engine/engine.db`:
@@ -363,59 +424,6 @@ All data persists in SQLite at `~/.local/share/ml-engine/engine.db`:
 
 ---
 
-## Programmatic Usage
-
-```typescript
-import {
-  providerRegistry,
-  modelCatalog,
-  configManager,
-  experimentTracker,
-  analyticsTracker,
-  orchestrationManager,
-  exportAll,
-  importFromEnv,
-} from "@ml-engine/core";
-
-// Add a provider instance
-const instance = providerRegistry.addInstance({
-  providerId: "baseten",
-  name: "production",
-  apiKey: "abc123...",
-});
-
-// Scan for models
-const scan = await modelCatalog.scanModels(instance.id);
-
-// Create an experiment
-const exp = experimentTracker.create({
-  name: "Reasoning benchmark",
-  userPrompt: "Solve this logic puzzle",
-  providerId: instance.id,
-  modelId: "zai-org/GLM-5",
-});
-
-// Save a result
-experimentTracker.saveResult(exp.id, {
-  output: "Step 1: ... Answer: 42",
-  tokensPrompt: 150,
-  tokensCompletion: 75,
-  latencyMs: 2400,
-  costUsd: 0.0025,
-});
-
-// Sync config to OpenCode
-configManager.syncToTarget("opencode");
-
-// Export everything for backup or team sharing
-const backup = exportAll();
-
-// Auto-import from environment
-const result = importFromEnv("PROVIDER_");
-```
-
----
-
 ## Comparison with Other Tools
 
 | Feature | **AI Lab** | Helicone | Langfuse | LangSmith | W&B | Arize Phoenix |
@@ -429,7 +437,7 @@ const result = importFromEnv("PROVIDER_");
 | Experiment Tracking | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
 | Provider Registry | ✅ 10 providers | ❌ | ❌ | ❌ | ❌ | ❌ |
 | OMO Orchestration | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Pricing | **Free** | $79+/mo | $59+/mo | $39/seat | $50+/mo | Free |
+| Pricing | **Free forever** | $79+/mo | $59+/mo | $39/seat | $50+/mo | Free |
 
 ---
 
@@ -446,11 +454,27 @@ const result = importFromEnv("PROVIDER_");
 
 ---
 
-## Contributors
+## Contributing
 
-AI Lab is built by [sandikodev](https://github.com/sandikodev) and contributors.
+Contributions are welcome! See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for details.
 
-Contributions are welcome! See [CONTRIBUTING.md](docs/CONTRIBUTING.md).
+Areas we'd love help with:
+- 🔌 Additional provider integrations
+- 🎨 Web UI improvements
+- 📊 New analytics visualizations
+- 📖 Documentation and tutorials
+- 🧪 Test coverage
+
+---
+
+## Part of the Ainjiner Ecosystem
+
+AI Lab is built and maintained by [Ainjiner](https://github.com/ainjiner) — an open-source AI engineering organization from Indonesia.
+
+[![Support via GitHub Sponsors](https://img.shields.io/badge/sponsor-GitHub-ea4aaa?style=flat-square&logo=github-sponsors)](https://github.com/sponsors/ainjiner)
+[![Open Collective](https://img.shields.io/badge/donate-Open%20Collective-3b82f6?style=flat-square&logo=opencollective)](https://opencollective.com/ainjiner)
+[![Ko-fi](https://img.shields.io/badge/ko--fi-ainjiner-f97316?style=flat-square&logo=ko-fi&logoColor=white)](https://ko-fi.com/ainjiner)
+[![Trakteer](https://img.shields.io/badge/trakteer-ainjiner-ef4444?style=flat-square)](https://trakteer.id/ainjiner)
 
 ---
 
