@@ -1,85 +1,84 @@
-# Qwik City App ⚡️
+# AI Lab — Web UI
 
-- [Qwik Docs](https://qwik.dev/)
-- [Discord](https://qwik.dev/chat)
-- [Qwik GitHub](https://github.com/QwikDev/qwik)
-- [@QwikDev](https://twitter.com/QwikDev)
-- [Vite](https://vitejs.dev/)
+The AI Lab Web UI is a [Qwik](https://qwik.dev/) application providing a graphical interface for the ML/LLM Engineering Platform.
 
----
+## Pages
+
+| Route | Description |
+|-------|-------------|
+| `/` | Dashboard — analytics summary, recent activity |
+| `/models` | Model catalog — list, search, compare, aliases |
+| `/experiments` | Experiment tracking — create, list, compare results |
+| `/tokens` | Token usage charts |
+| `/cost` | Cost analysis — breakdown, projections, budgets |
+| `/tracing` | Request logs — timestamp, provider, model, tokens, cost, latency |
+| `/settings` | Platform settings and config targets |
+| `/integrations` | Provider management — add, test, scan |
+| `/orchestration` | OMO agents and skills viewer |
+
+## Prerequisites
+
+- **Bun** >= 1.2
+- The **REST API** running on `http://localhost:4321/api`
+
+## Getting Started
+
+```bash
+# From repo root
+bun install
+bun run build:core
+bun run api          # Start API on :4321 (needed by Web UI)
+
+# In another terminal:
+bun run dev:web      # Start Web UI on :5173
+```
+
+The Web UI consumes data exclusively via HTTP from the API. It does not import `@ml-engine/core` directly (Qwik's SSR is incompatible with core's Bun-native dependencies like `bun:sqlite`).
+
+## API Client
+
+All API calls go through `src/lib/api.ts`:
+
+```typescript
+const API_URL = process.env.API_URL || "http://localhost:4321/api";
+```
+
+Override with `API_URL` environment variable if needed.
+
+## Tech Stack
+
+- **Qwik** 1.19+ — resumable framework
+- **Tailwind CSS** v4 — utility-first CSS
+- **Custom UI components** — Card, Table, Badge, Button, Input (shadcn-style)
+
+## Building for Production
+
+```bash
+bun run build
+bun run preview       # Preview production build
+```
 
 ## Project Structure
 
-This project is using Qwik with [QwikCity](https://qwik.dev/qwikcity/overview/). QwikCity is just an extra set of tools on top of Qwik to make it easier to build a full site, including directory-based routing, layouts, and more.
-
-Inside your project, you'll see the following directory structure:
-
 ```
-├── public/
-│   └── ...
-└── src/
-    ├── components/
-    │   └── ...
-    └── routes/
-        └── ...
+src/
+├── components/
+│   ├── logo/          # SVG lettermark logo component
+│   ├── ui/            # Reusable UI components (Card, Table, etc.)
+│   ├── locale-selector/  # Language selector
+│   └── router-head/   # Head meta tags
+├── routes/
+│   ├── layout.tsx     # Sidebar layout + navigation
+│   ├── index.tsx      # Dashboard page
+│   ├── models/        # Model catalog
+│   ├── experiments/   # Experiment tracking
+│   ├── tokens/        # Token usage
+│   ├── cost/          # Cost analysis
+│   ├── tracing/       # Request logs
+│   ├── settings/      # Platform settings
+│   ├── integrations/  # Provider management
+│   └── orchestration/  # OMO agents and skills
+├── lib/
+│   └── api.ts         # API client
+└── global.css         # Tailwind imports + custom styles
 ```
-
-- `src/routes`: Provides the directory-based routing, which can include a hierarchy of `layout.tsx` layout files, and an `index.tsx` file as the page. Additionally, `index.ts` files are endpoints. Please see the [routing docs](https://qwik.dev/qwikcity/routing/overview/) for more info.
-
-- `src/components`: Recommended directory for components.
-
-- `public`: Any static assets, like images, can be placed in the public directory. Please see the [Vite public directory](https://vitejs.dev/guide/assets.html#the-public-directory) for more info.
-
-## Add Integrations and deployment
-
-Use the `bun qwik add` command to add additional integrations. Some examples of integrations includes: Cloudflare, Netlify or Express Server, and the [Static Site Generator (SSG)](https://qwik.dev/qwikcity/guides/static-site-generation/).
-
-```shell
-bun qwik add # or `bun qwik add`
-```
-
-## Development
-
-Development mode uses [Vite's development server](https://vitejs.dev/). The `dev` command will server-side render (SSR) the output during development.
-
-```shell
-npm start # or `bun start`
-```
-
-> Note: during dev mode, Vite may request a significant number of `.js` files. This does not represent a Qwik production build.
-
-## Preview
-
-The preview command will create a production build of the client modules, a production build of `src/entry.preview.tsx`, and run a local server. The preview server is only for convenience to preview a production build locally and should not be used as a production server.
-
-```shell
-bun preview # or `bun preview`
-```
-
-## Production
-
-The production build will generate client and server modules by running both client and server build commands. The build command will use Typescript to run a type check on the source code.
-
-```shell
-bun build # or `bun build`
-```
-
-## Bun Server
-
-This app has a minimal [Bun server](https://bun.sh/docs/api/http) implementation. After running a full build, you can preview the build using the command:
-
-```
-bun run serve
-```
-
-Then visit [http://localhost:3000/](http://localhost:3000/)
-
-## Bun Server
-
-This app has a minimal [Bun server](https://bun.sh/docs/api/http) implementation. After running a full build, you can preview the build using the command:
-
-```
-bun run serve
-```
-
-Then visit [http://localhost:3000/](http://localhost:3000/)

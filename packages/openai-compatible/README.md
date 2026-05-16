@@ -1,110 +1,84 @@
-# AI SDK - OpenAI Compatible Provider
+# @ai-lab/openai-compatible
 
-This package provides a foundation for implementing providers that expose an OpenAI-compatible API.
+> **Forked from** [`@ai-sdk/openai-compatible`](https://github.com/vercel/ai) — Vercel AI SDK v4 provider for OpenAI-compatible APIs, with a custom `minChunkSize` SSE fix.
 
-The primary [OpenAI provider](../openai/README.md) is more feature-rich, including OpenAI-specific experimental and legacy features. This package offers a lighter-weight alternative focused on core OpenAI-compatible functionality.
+## Why This Fork?
 
-> **Deploying to Vercel?** With Vercel's AI Gateway you can access hundreds of models from any provider — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+The upstream `@ai-sdk/openai-compatible` SDK (and `@ai-sdk/core` before v4) suffered from **SSE chunk fragmentation** on certain providers (notably Baseten and Together), where streaming responses were split into tiny chunks at the network level. This caused choppy streaming, incomplete reasoning deltas, and poor UX in AI coding tools.
 
-## Setup
+**Upstream issue:** [vercel/ai#15343](https://github.com/vercel/ai/issues/15343) — "SSE stream responses are heavily fragmented"
 
-The provider is available in the `@ai-sdk/openai-compatible` module. You can install it with
+**This fork adds:**
 
-```bash
-npm i @ai-sdk/openai-compatible
-```
+### `minChunkSize` configuration
 
-## Skill for Coding Agents
+A new option on `OpenAICompatibleChatSettings` that buffers streaming deltas until they reach the specified character threshold before flushing to the consumer.
 
-If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+```typescript
+import { createOpenAICompatible } from "@ai-lab/openai-compatible";
 
-```shell
-npx skills add vercel/ai
-```
+const provider = createOpenAICompatible({
+  name: "baseten",
+  baseURL: "https://bridge.baseten.co/v1/dp_q6/direct",
+  headers: {
+    Authorization: `Bearer ${process.env.BASETEN_API_KEY}`,
+  },
+});
 
-## Provider Instance
-
-You can import the provider creation method `createOpenAICompatible` from `@ai-sdk/openai-compatible`:
-
-```ts
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-```
-
-## Example
-
-```ts
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { generateText } from 'ai';
-
-const { text } = await generateText({
-  model: createOpenAICompatible({
-    baseURL: 'https://api.example.com/v1',
-    name: 'example',
-    apiKey: process.env.MY_API_KEY,
-  }).chatModel('meta-llama/Llama-3-70b-chat-hf'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+const model = provider.chatModel("zai-org/GLM-5", {
+  minChunkSize: 80,  // Buffer until 80 chars before flushing
 });
 ```
 
-### Customizing headers
+This replaces the **legacy SSE proxy** approach entirely — no more running a sidecar proxy for smooth streaming.
 
-You can further customize headers if desired. For example, here is an alternate implementation to pass along api key authentication:
+## Usage
 
-```ts
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { generateText } from 'ai';
+```typescript
+import { generateText } from "ai";
+import { createOpenAICompatible } from "@ai-lab/openai-compatible";
 
-const { text } = await generateText({
-  model: createOpenAICompatible({
-    baseURL: 'https://api.example.com/v1',
-    name: 'example',
-    headers: {
-      Authorization: `Bearer ${process.env.MY_API_KEY}`,
-    },
-  }).chatModel('meta-llama/Llama-3-70b-chat-hf'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+const provider = createOpenAICompatible({
+  name: "my-provider",
+  baseURL: "https://api.example.com/v1",
+  headers: {
+    Authorization: `Bearer ${process.env.API_KEY}`,
+  },
+});
+
+// Without minChunkSize (default behavior)
+const model = provider.chatModel("my-model");
+
+// With minChunkSize (buffered streaming)
+const buffered = provider.chatModel("my-model", {
+  minChunkSize: 80,
+});
+
+const result = await generateText({
+  model: buffered,
+  prompt: "Write a story about...",
 });
 ```
 
-### Including model ids for auto-completion
+## Breaking Changes from Upstream
 
-```ts
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { generateText } from 'ai';
+- ESM only (matching upstream v3+)
+- Deprecated type aliases removed from index exports
+- Internal chunk type assertion cleaned up (no more `as` cast in stream handler)
 
-type ExampleChatModelIds =
-  | 'meta-llama/Llama-3-70b-chat-hf'
-  | 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'
-  | (string & {});
+## Versioning
 
-type ExampleCompletionModelIds =
-  | 'codellama/CodeLlama-34b-Instruct-hf'
-  | 'Qwen/Qwen2.5-Coder-32B-Instruct'
-  | (string & {});
+- This fork tracks upstream canary releases: `3.0.0-canary.x`
+- Custom changes are marked in the commit history with `[fork]` prefix
 
-type ExampleEmbeddingModelIds =
-  | 'BAAI/bge-large-en-v1.5'
-  | 'bert-base-uncased'
-  | (string & {});
+## Dependencies
 
-const model = createOpenAICompatible<
-  ExampleChatModelIds,
-  ExampleCompletionModelIds,
-  ExampleEmbeddingModelIds
->({
-  baseURL: 'https://api.example.com/v1',
-  name: 'example',
-  apiKey: process.env.MY_API_KEY,
-});
+> ⚠️ This package uses canary dependencies: `@ai-sdk/provider@4.0.0-canary.x` and `@ai-sdk/provider-utils@5.0.0-canary.x`. These are pre-release versions and may break on update. Pin versions carefully.
 
-// Subsequent calls to e.g. `model.chatModel` will auto-complete the model id
-// from the list of `ExampleChatModelIds` while still allowing free-form
-// strings as well.
+- **zod** ^3.25.76 (or ^4.1.8 compatible)
+- **@ai-sdk/provider** — canary
+- **@ai-sdk/provider-utils** — canary
 
-const { text } = await generateText({
-  model: model.chatModel('meta-llama/Llama-3-70b-chat-hf'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
-});
-```
+## License
 
-For more examples, see the [OpenAI Compatible Providers](https://ai-sdk.dev/providers/openai-compatible-providers) documentation.
+[MIT](https://github.com/sandikodev/baseten-workspace-manager/blob/main/LICENSE) — Same as upstream.

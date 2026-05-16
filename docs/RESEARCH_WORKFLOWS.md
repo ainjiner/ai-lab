@@ -2,24 +2,24 @@
 
 This document describes the research workflows AI Lab supports for ML/LLM Engineering.
 
+> **Status Legend:** ✅ Implemented | 🔜 Planned
+
 ## Table of Contents
 
-1. [Prompt Engineering](#1-prompt-engineering)
-2. [RAG (Retrieval-Augmented Generation)](#2-rag-retrieval-augmented-generation)
-3. [CAG (Context-Augmented Generation)](#3-cag-context-augmented-generation)
-4. [Model Evaluation](#4-model-evaluation)
-5. [Cost Optimization](#5-cost-optimization)
-6. [Experiment Tracking](#6-experiment-tracking)
-7. [Fine-tuning Preparation](#7-fine-tuning-preparation)
-8. [Agent Development](#8-agent-development)
+1. [Prompt Engineering](#1-prompt-engineering) ✅
+2. [RAG (Retrieval-Augmented Generation)](#2-rag-retrieval-augmented-generation) 🔜
+3. [CAG (Context-Augmented Generation)](#3-cag-context-augmented-generation) 🔜
+4. [Model Evaluation](#4-model-evaluation) ✅
+5. [Cost Optimization](#5-cost-optimization) ✅
+6. [Experiment Tracking](#6-experiment-tracking) ✅
+7. [Fine-tuning Preparation](#7-fine-tuning-preparation) 🔜
+8. [Agent Development](#8-agent-development) 🔜
 
 ---
 
 ## 1. Prompt Engineering
 
-### What is Prompt Engineering?
-
-Prompt engineering is the practice of designing, testing, and optimizing prompts to get the best outputs from LLMs. It's both an art and a science.
+**Status:** ✅ Implemented | **Description:** Designing, testing, and optimizing prompts to get the best outputs from LLMs.
 
 ### Key Techniques
 
@@ -61,19 +61,17 @@ Prompt engineering is the practice of designing, testing, and optimizing prompts
 
 ### Best Practices
 
-1. **Version your prompts** - Track changes over time
-2. **Test across models** - Different models respond differently
-3. **Measure quality** - Use automated evaluators
-4. **Track costs** - Token usage varies by prompt length
-5. **Document intent** - Why did you write this prompt?
+1. **Version your prompts** — Track changes over time
+2. **Test across models** — Different models respond differently
+3. **Measure quality** — Use automated evaluators
+4. **Track costs** — Token usage varies by prompt length
+5. **Document intent** — Why did you write this prompt?
 
 ---
 
 ## 2. RAG (Retrieval-Augmented Generation)
 
-### What is RAG?
-
-RAG combines LLMs with external knowledge retrieval. Instead of relying solely on training data, the model fetches relevant documents at query time.
+**Status:** 🔜 Planned | **Description:** Combines LLMs with external knowledge retrieval for grounded generation.
 
 ### Architecture
 
@@ -89,7 +87,6 @@ RAG combines LLMs with external knowledge retrieval. Instead of relying solely o
 │                                              ↓              │
 │                                       ┌─────────────┐      │
 │                                       │  Vector DB  │      │
-│                                       │  (Pinecone) │      │
 │                                       └─────────────┘      │
 │                                              ↑              │
 │  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
@@ -131,21 +128,11 @@ RAG combines LLMs with external knowledge retrieval. Instead of relying solely o
 | **Faithfulness** | Output grounded in context | >90% |
 | **Answer Relevance** | Output answers the question | >85% |
 
-### AI Lab Support (Planned)
-
-- [ ] Document ingestion & chunking
-- [ ] Embedding model comparison
-- [ ] Retrieval strategy testing
-- [ ] End-to-end evaluation
-- [ ] Context window optimization
-
 ---
 
 ## 3. CAG (Context-Augmented Generation)
 
-### What is CAG?
-
-CAG pre-loads relevant context into the model's context window before inference. Unlike RAG, there's no per-query retrieval step.
+**Status:** 🔜 Planned | **Description:** Pre-loads relevant context into the model's context window before inference.
 
 ### RAG vs CAG Comparison
 
@@ -155,7 +142,7 @@ RAG (Just-in-Time):
 │  Query  │───▶│ Search  │───▶│ Retrieve │───▶│ Generate│
 └─────────┘    └─────────┘    └─────────┘    └─────────┘
    ~50ms         ~100ms        ~50ms         ~500ms
-                     Total: ~700ms
+                      Total: ~700ms
 
 CAG (Pre-loaded):
 ┌─────────┐    ┌─────────┐
@@ -175,36 +162,11 @@ CAG (Pre-loaded):
 | **Infrastructure** | Minimal | Vector DB required |
 | **Use Case** | Policies, FAQs, docs | Search, live data |
 
-### CAG Implementation
-
-```python
-# Pre-load context
-context = """
-[COMPANY POLICIES]
-- Policy 1: ...
-- Policy 2: ...
-[FAQ]
-- Q1: ...
-- Q2: ...
-"""
-
-# Query with pre-loaded context
-response = llm.generate(
-    context + user_query,
-    model="gpt-4o"
-)
-```
-
-### AI Lab Support (Planned)
-
-- [ ] Context window analysis
-- [ ] Pre-loading strategies
-- [ ] Cache management
-- [ ] RAG vs CAG recommendations
-
 ---
 
 ## 4. Model Evaluation
+
+**Status:** ✅ Implemented | **Description:** Benchmark, evaluate, and compare LLM outputs.
 
 ### Evaluation Types
 
@@ -231,7 +193,6 @@ response = llm.generate(
 │                            ↓                                 │
 │                    ┌─────────────┐                          │
 │                    │ Judge Model │                          │
-│                    │  (GPT-4o)   │                          │
 │                    └─────────────┘                          │
 │                            ↓                                 │
 │                    ┌─────────────┐                          │
@@ -253,17 +214,11 @@ response = llm.generate(
 | **Harmfulness** | Safety check | "Is this response harmful?" |
 | **Faithfulness** | Grounded in context | "Is this supported by the context?" |
 
-### AI Lab Support
-
-- [x] Evaluation dashboard
-- [x] Benchmark tracking
-- [ ] LLM-as-judge evaluators
-- [ ] Custom scorer framework
-- [ ] Regression detection
-
 ---
 
 ## 5. Cost Optimization
+
+**Status:** ✅ Implemented | **Description:** Track token usage, analyze costs, project spending.
 
 ### Cost Drivers
 
@@ -308,16 +263,11 @@ response = llm.generate(
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### AI Lab Support
-
-- [x] Token usage tracking
-- [x] Cost per model
-- [x] Monthly projections
-- [x] Optimization recommendations
-
 ---
 
 ## 6. Experiment Tracking
+
+**Status:** ✅ Implemented | **Description:** Design, run, evaluate, and compare LLM experiments.
 
 ### What to Track
 
@@ -350,17 +300,11 @@ response = llm.generate(
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### AI Lab Support
-
-- [x] Experiment dashboard
-- [x] Run comparison
-- [x] Metric tracking
-- [ ] Git integration
-- [ ] Automated regression detection
-
 ---
 
 ## 7. Fine-tuning Preparation
+
+**Status:** 🔜 Planned | **Description:** Curate datasets, filter quality, prepare training data.
 
 ### Data Requirements
 
@@ -391,35 +335,28 @@ response = llm.generate(
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### AI Lab Support (Planned)
-
-- [ ] Trace-to-dataset conversion
-- [ ] Quality filtering
-- [ ] Annotation interface
-- [ ] Training data export
-- [ ] Fine-tuning job integration
-
 ---
 
 ## 8. Agent Development
+
+**Status:** 🔜 Planned | **Description:** Build, trace, and debug AI agents.
 
 ### Agent Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Agent Architecture                         │
+│                    Agent Architecture                        │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │                    ┌─────────────┐                          │
 │                    │   Agent     │                          │
-│                    │  (Orchestrator)│                        │
+│                    │ (Orchestrator)                          │
 │                    └─────────────┘                          │
 │                          │                                   │
 │         ┌────────────────┼────────────────┐                │
 │         ↓                ↓                ↓                │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
-│  │   Planner   │  │  Executor   │  │  Memory    │        │
-│  │             │  │             │  │             │        │
+│  │   Planner   │  │  Executor   │  │   Memory    │        │
 │  └─────────────┘  └─────────────┘  └─────────────┘        │
 │         │                │                                  │
 │         ↓                ↓                                  │
@@ -437,19 +374,11 @@ response = llm.generate(
 
 | Challenge | Description | AI Lab Solution |
 |-----------|-------------|-----------------|
-| **Multi-step reasoning** | Hard to trace logic | Step-by-step tracing |
-| **Tool failures** | Silent errors | Tool call logging |
-| **Context overflow** | Lost information | Context window analysis |
-| **Infinite loops** | Agent stuck | Loop detection |
+| **Multi-step reasoning** | Hard to trace logic | Step-by-step tracing (planned) |
+| **Tool failures** | Silent errors | Tool call logging (planned) |
+| **Context overflow** | Lost information | Context window analysis (planned) |
+| **Infinite loops** | Agent stuck | Loop detection (planned) |
 | **Cost explosion** | Unexpected spend | Real-time cost tracking |
-
-### AI Lab Support (Planned)
-
-- [ ] Agent tracing
-- [ ] Tool call visualization
-- [ ] Multi-agent debugging
-- [ ] Agent evaluation
-- [ ] Cost prediction
 
 ---
 
@@ -464,16 +393,12 @@ AI Lab is designed to support the full ML/LLM research lifecycle:
 │                                                             │
 │  ✅ Prompt Engineering     - Playground, templates, compare │
 │  ✅ Model Evaluation       - Benchmarks, custom evaluators  │
-│  ✅ Cost Optimization      - Tracking, projections          │
+│  ✅ Cost Optimization      - Tracking, projections, alerts  │
 │  ✅ Experiment Tracking    - Runs, comparisons, metrics     │
 │  🔜 RAG Development        - Chunking, retrieval eval       │
 │  🔜 CAG Development        - Context analysis               │
-│  🔜 Fine-tuning Prep      - Dataset curation               │
+│  🔜 Fine-tuning Prep       - Dataset curation               │
 │  🔜 Agent Development      - Tracing, debugging             │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
-
-**Legend:**
-- ✅ Implemented
-- 🔜 Planned

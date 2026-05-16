@@ -1,8 +1,10 @@
-# AI Lab - Positioning & Differentiation
+# AI Lab — Positioning & Differentiation
 
 ## What is AI Lab?
 
-AI Lab is a **self-hosted, unified ML/LLM Engineering research platform** designed for teams who want complete control over their AI infrastructure. It combines observability, evaluation, prompt engineering, and cost management in a single, open-source solution.
+AI Lab is a **self-hosted, unified ML/LLM Engineering research platform** designed for teams who want complete control over their AI infrastructure. It combines observability, provider management, model catalog, evaluation, cost analytics, and config sync in a single, open-source solution.
+
+---
 
 ## The Problem
 
@@ -16,26 +18,31 @@ Building production LLM applications requires multiple specialized tools:
 | **Cost Tracking** | Helicone, LangSmith | Per-seat pricing gets expensive |
 | **Experiment Tracking** | W&B, MLflow | Built for traditional ML, not LLM |
 | **Model Comparison** | Manual or scattered | No unified view |
+| **Config Sync** | Manual editing | Error-prone, format research |
 
 **Result**: Teams juggle 3-5 different tools, data is fragmented, and costs spiral.
+
+---
 
 ## AI Lab vs. The Competition
 
 ### Feature Comparison
 
-| Feature | AI Lab | Helicone | Langfuse | LangSmith | W&B | Arize Phoenix | Braintrust |
-|---------|--------|----------|----------|-----------|-----|---------------|------------|
-| **Self-Hosted** | ✅ Full | ✅ Full | ✅ Full | ❌ Cloud | ❌ Cloud | ✅ Full | ❌ Cloud |
-| **Open Source** | ✅ MIT | ✅ Apache | ✅ MIT | ❌ Closed | ❌ Closed | ✅ MIT | ❌ Closed |
-| **LLM Observability** | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
-| **Prompt Playground** | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
-| **Model Comparison** | ✅ Side-by-side | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Cost Analysis** | ✅ Projections | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ |
-| **Experiment Tracking** | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Evaluation Suite** | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **RAG/CAG Support** | ✅ Planned | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **AI Gateway** | ✅ Built-in | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| **Pricing** | **Free** | $79+/mo | $59+/mo | $39/seat | $50+/mo | Free | $100+/mo |
+| Feature | AI Lab | Helicone | Langfuse | LangSmith | W&B | Arize Phoenix |
+|---------|--------|----------|----------|-----------|-----|---------------|
+| **Self-Hosted** | ✅ Full | ✅ Full | ✅ Full | ❌ Cloud | ❌ Cloud | ✅ Full |
+| **Open Source** | ✅ MIT | ✅ Apache | ✅ MIT | ❌ Closed | ❌ Closed | ✅ MIT |
+| **LLM Observability** | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| **Prompt Playground** | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| **Model Comparison** | ✅ Side-by-side | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Cost Analysis** | ✅ Projections + alerts | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **Experiment Tracking** | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Evaluation Suite** | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **RAG/CAG Support** | ✅ Planned | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Provider Registry** | ✅ 10 providers | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Config Sync** | ✅ OpenCode-native | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **OMO Orchestration** | ✅ Read agents/skills | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Pricing** | **Free** | $79+/mo | $59+/mo | $39/seat | $50+/mo | Free |
 
 ### Key Differentiators
 
@@ -51,13 +58,13 @@ Traditional Stack:
    Data silos      Manual sync      Context loss
 
 AI Lab:
-┌─────────────────────────────────────────────┐
-│                  AI Lab                      │
-│  Observability │ Evaluation │ Experiments  │
-│  Prompts │ Cost │ Models │ Integrations     │
-└─────────────────────────────────────────────┘
-                    ↓
-            Single source of truth
+┌──────────────────────────────────────────────┐
+│                  AI Lab                       │
+│  Observability │ Models │ Experiments        │
+│  Cost │ Config Sync │ Orchestration          │
+└──────────────────────────────────────────────┘
+                     ↓
+             Single source of truth
 ```
 
 #### 2. **Self-Hosted by Default**
@@ -85,44 +92,56 @@ Built for ML/LLM researchers, not just production monitoring:
 | Research Activity | AI Lab Support |
 |-------------------|-----------------|
 | Prompt Engineering | ✅ Playground + templates + versioning |
-| Model Selection | ✅ Comparison + benchmarks |
-| Cost Optimization | ✅ Projections + recommendations |
+| Model Selection | ✅ Comparison + benchmarks + recommendations |
+| Cost Optimization | ✅ Projections + recommendations + budget alerts |
 | RAG Development | ✅ Chunking + retrieval eval (planned) |
 | CAG Development | ✅ Context window analysis (planned) |
 | Fine-tuning Prep | ✅ Dataset curation (planned) |
-| Agent Development | ✅ Tracing + debugging |
-| Evaluation Design | ✅ Custom evaluators + LLM-as-judge |
+| Agent Development | ✅ Tracing + debugging (planned) |
+| Evaluation Design | ✅ Custom evaluators + LLM-as-judge (planned) |
+
+#### 5. **OpenCode-Native**
+
+AI Lab is the only platform that treats [OpenCode](https://opencode.ai) as a first-class citizen:
+
+- **One-command config sync**: `ml-engine config sync opencode` writes provider config and auth keys directly into OpenCode's native JSON format (`~/.config/opencode/opencode.json` and `~/.local/share/opencode/auth.json`).
+- **OMO aware**: Reads `~/.config/opencode/agents/` for agent list and `~/.config/opencode/skills/` for skill content — displayed directly in the Web UI orchestration dashboard.
+- **Shared streaming fix**: Both AI Lab and OpenCode use the same forked `@ai-sdk/openai-compatible` with the `minChunkSize` SSE fix. No fragmentation, no buffer tricks.
+
+> **AI Lab is to OpenCode what npm is to Node** — the companion tool that manages the underlying provider infrastructure, so you never have to edit JSON files by hand.
+
+---
 
 ## Research Workflows Supported
 
 ### 1. Prompt Engineering
 
 ```
-┌─────────────────────────────────────────────┐
-│           Prompt Engineering Flow           │
-├─────────────────────────────────────────────┤
-│  1. Create prompt template                   │
-│  2. Test with different models              │
-│  3. Compare outputs side-by-side            │
-│  4. Version and track changes               │
-│  5. Deploy to production                    │
-│  6. Monitor performance metrics             │
-└─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│           Prompt Engineering Flow            │
+├──────────────────────────────────────────────┤
+│  1. Create prompt template                    │
+│  2. Test with different models               │
+│  3. Compare outputs side-by-side             │
+│  4. Version and track changes                │
+│  5. Deploy to production                     │
+│  6. Monitor performance metrics              │
+└──────────────────────────────────────────────┘
 ```
 
 ### 2. RAG (Retrieval-Augmented Generation)
 
 ```
-┌─────────────────────────────────────────────┐
-│              RAG Development Flow           │
-├─────────────────────────────────────────────┤
-│  1. Document ingestion & chunking           │
-│  2. Embedding model selection               │
-│  3. Retrieval strategy testing              │
-│  4. Context window optimization             │
-│  5. End-to-end evaluation                   │
-│  6. Latency vs. quality tradeoffs           │
-└─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│              RAG Development Flow            │
+├──────────────────────────────────────────────┤
+│  1. Document ingestion & chunking            │
+│  2. Embedding model selection                │
+│  3. Retrieval strategy testing               │
+│  4. Context window optimization              │
+│  5. End-to-end evaluation                    │
+│  6. Latency vs. quality tradeoffs            │
+└──────────────────────────────────────────────┘
 ```
 
 **RAG vs CAG Decision Matrix:**
@@ -138,67 +157,101 @@ Built for ML/LLM researchers, not just production monitoring:
 ### 3. Model Evaluation
 
 ```
-┌─────────────────────────────────────────────┐
-│           Evaluation Pipeline               │
-├─────────────────────────────────────────────┤
-│  1. Create evaluation dataset              │
-│  2. Define evaluation criteria             │
-│  3. Run LLM-as-judge evaluators            │
-│  4. Compare across models/prompts          │
-│  5. Track improvements over time           │
-│  6. Set up regression detection           │
-└─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│           Evaluation Pipeline                │
+├──────────────────────────────────────────────┤
+│  1. Create evaluation dataset               │
+│  2. Define evaluation criteria              │
+│  3. Run LLM-as-judge evaluators             │
+│  4. Compare across models/prompts           │
+│  5. Track improvements over time            │
+│  6. Set up regression detection             │
+└──────────────────────────────────────────────┘
 ```
 
 ### 4. Cost Optimization
 
 ```
-┌─────────────────────────────────────────────┐
-│           Cost Analysis Flow                │
-├─────────────────────────────────────────────┤
-│  1. Track token usage per model            │
-│  2. Analyze cost per query type           │
-│  3. Identify expensive patterns           │
-│  4. Test cheaper alternatives             │
-│  5. Project monthly costs                 │
-│  6. Set budget alerts                     │
-└─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│           Cost Analysis Flow                 │
+├──────────────────────────────────────────────┤
+│  1. Track token usage per model             │
+│  2. Analyze cost per query type             │
+│  3. Identify expensive patterns             │
+│  4. Test cheaper alternatives               │
+│  5. Project monthly costs                   │
+│  6. Set budget alerts                       │
+└──────────────────────────────────────────────┘
 ```
+
+---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        AI Lab                                │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
-│  │   Web UI    │  │  Workspace  │  │  SSE Proxy  │        │
-│  │  (QwikJS)   │  │  Manager    │  │  (Buffer)   │        │
-│  └─────────────┘  └─────────────┘  └─────────────┘        │
-│         ↓                ↓                ↓                │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │              @ai-lab/openai-compatible              │   │
-│  │           (SDK with minChunkSize support)           │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                            ↓                                │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │                    Baseten API                      │   │
-│  │     (100+ models: GPT, Claude, DeepSeek, GLM)      │   │
-│  └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                          AI Lab Platform                          │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────────────┐     ┌───────────────────────────────┐  │
+│  │     Web UI          │     │         CLI                   │  │
+│  │  (Qwik + Tailwind)  │     │   ml-engine <command>         │  │
+│  │  Port 5173          │     │   30+ commands                │  │
+│  └─────────┬───────────┘     └──────────┬────────────────────┘  │
+│            │                            │                        │
+│            └──────────┬─────────────────┘                        │
+│                       ↓ HTTP                                    │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │               REST API (Hono, Port 4321)                   │  │
+│  │   65+ endpoints — Provider, Model, Config, Analytics      │  │
+│  └──────────────────────────┬────────────────────────────────┘  │
+│                             ↓                                    │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │               @ml-engine/core                              │  │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐     │  │
+│  │  │Provider  │ │  Model   │ │  Config  │ │Analytics │     │  │
+│  │  │Registry  │ │ Catalog  │ │ Manager  │ │+ Budgets │     │  │
+│  │  ├──────────┤ ├──────────┤ ├──────────┤ ├──────────┤     │  │
+│  │  │ 10       │ │ Search   │ │ OpenCode │ │Usage     │     │  │
+│  │  │providers │ │ Compare  │ │ Cursor   │ │Cost proj │     │  │
+│  │  │Scanning  │ │Aliases   │ │ Continue │ │Alerts    │     │  │
+│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘     │  │
+│  │  ┌──────────┐ ┌──────────┐ ┌───────────────────────┐     │  │
+│  │  │Experiment│ │Orchestra │ │ Utils                 │     │  │
+│  │  │ Tracker  │ │  tion    │ │ Env import | Export   │     │  │
+│  │  └──────────┘ └──────────┘ └───────────────────────┘     │  │
+│  └──────────────────────────┬────────────────────────────────┘  │
+│                             ↓                                    │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │               SQLite Store (bun:sqlite)                   │  │
+│  │  ~/.local/share/ml-engine/engine.db — auto-migration      │  │
+│  │  Tables: providers, instances, models, aliases,           │  │
+│  │  experiments, usage, budgets, settings                    │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                                                                  │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │   @ai-lab/openai-compatible (forked AI SDK)                │  │
+│  │   AI SDK v4 fork with minChunkSize SSE fix                │  │
+│  │   Replaces legacy SSE proxy entirely                      │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
 ```
+
+---
 
 ## When to Choose AI Lab
 
 ### Choose AI Lab if:
 
 - ✅ You want **self-hosted** infrastructure
-- ✅ You need **unified** observability + evaluation
+- ✅ You need **unified** observability + provider management
 - ✅ You want **model comparison** built-in
 - ✅ You're doing **ML/LLM research** (not just production monitoring)
 - ✅ You want **zero licensing costs**
+- ✅ You need **config sync** with your AI editor
+- ✅ You use **OpenCode** as your development environment
 - ✅ You need **RAG/CAG development** tools
-- ✅ You want **Baseten integration** out of the box
 
 ### Choose Helicone if:
 
@@ -230,15 +283,20 @@ Built for ML/LLM researchers, not just production monitoring:
 - You need **evaluation** with custom scorers
 - You're okay with **separate tools** for other needs
 
+---
+
 ## Roadmap
 
-### Phase 1: Foundation (Current)
+### Phase 1: Foundation (Complete)
 - [x] Web UI with QwikJS + Tailwind CSS v4
 - [x] Dashboard, Models, Tokens, Cost, Tracing
-- [x] Prompt Playground
-- [x] Model Comparison
-- [x] Experiments & Evaluations
-- [x] Settings & Integrations
+- [x] Provider Registry (10 providers)
+- [x] Model Comparison & Recommendations
+- [x] Experiments & Analytics
+- [x] Config Sync (OpenCode, Cursor, Continue, Aider)
+- [x] Orchestration (OMO agents + skills)
+- [x] Export/Import, Env Detection
+- [x] REST API (65+ endpoints)
 
 ### Phase 2: RAG/CAG Support
 - [ ] Document chunking & embedding
@@ -264,20 +322,20 @@ Built for ML/LLM researchers, not just production monitoring:
 - [ ] Multi-agent orchestration
 - [ ] Agent evaluation
 
+---
+
 ## Getting Started
 
 ```bash
-# Clone
-git clone https://github.com/sandikodev/baseten-workspace-manager.git
-cd baseten-workspace-manager
-
-# Install
 bun install
-
-# Run
-bun run dev
+bun run build:core
+bun run cli provider add baseten production YOUR_API_KEY
+bun run cli provider scan baseten-production
+bun run cli config sync opencode
+bun run api        # Start API at :4321
+bun run dev:web    # Start UI at :5173
 ```
 
 ## License
 
-MIT - Free forever, self-hosted, no restrictions.
+MIT — Free forever, self-hosted, no restrictions.
