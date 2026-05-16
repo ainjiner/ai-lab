@@ -15,10 +15,7 @@ export default component$(() => {
     {
       title: "Research",
       items: [
-        { href: "/prompts", label: "Prompts", icon: "✏️" },
         { href: "/experiments", label: "Experiments", icon: "🔬" },
-        { href: "/evaluations", label: "Evaluations", icon: "📈" },
-        { href: "/compare", label: "Compare", icon: "⚖️" },
       ],
     },
     {
@@ -27,6 +24,12 @@ export default component$(() => {
         { href: "/tokens", label: "Tokens", icon: "🔢" },
         { href: "/cost", label: "Cost", icon: "💰" },
         { href: "/tracing", label: "Tracing", icon: "🔍" },
+      ],
+    },
+    {
+      title: "Orchestration",
+      items: [
+        { href: "/orchestration", label: "Orchestration", icon: "🎭" },
       ],
     },
     {
@@ -74,7 +77,7 @@ export default component$(() => {
         </nav>
 
         <div class="border-t border-surface-light p-4">
-          <p class="text-xs text-text-muted">Powered by Qwik + Baseten</p>
+          <p class="text-xs text-text-muted">ML Engine v0.1.0</p>
         </div>
       </aside>
 

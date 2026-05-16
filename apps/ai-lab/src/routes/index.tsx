@@ -1,40 +1,63 @@
-import { component$ } from "@builder.io/qwik";
+import { component$, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
-import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
+import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
+import { api } from "~/lib/api";
+
+interface DashboardState {
+  providers: number; models: number; instances: number; targets: number;
+  experiments: number; usage: { totalCost: number; totalTokens: number };
+  loading: boolean;
+}
 
 export default component$(() => {
-  const stats = [
-    { label: "Available Models", value: 12, color: "text-primary" },
-    { label: "Active Experiments", value: 8, color: "text-success" },
-    { label: "Evaluations", value: 24, color: "text-warning" },
-    { label: "Tokens Used", value: "1.2M", color: "text-error" },
-  ];
+  const state = useStore<DashboardState>({
+    providers: 0, models: 0, instances: 0, targets: 0, experiments: 0,
+    usage: { totalCost: 0, totalTokens: 0 }, loading: true,
+  });
 
-  const activities = [
-    { text: "Model scan completed", time: "2m ago" },
-    { text: "Experiment #42 finished", time: "15m ago" },
-    { text: "New model added", time: "1h ago" },
-    { text: "Evaluation passed", time: "2h ago" },
-  ];
+  useVisibleTask$(async () => {
+    try {
+      const [providers, models, instances, config, experiments, analytics] = await Promise.all([
+        api.get<{ providers: unknown[] }>("/providers"),
+        api.get<{ total: number }>("/models"),
+        api.get<{ instances: unknown[] }>("/providers/instances"),
+        api.get<{ targets: unknown[] }>("/config"),
+        api.get<{ total: number }>("/experiments"),
+        api.get<{ summary: { totalCost: number; totalTokens: number } }>("/analytics/summary"),
+      ]);
+      state.providers = providers.providers.length;
+      state.models = models.total;
+      state.instances = instances.instances.length;
+      state.targets = config.targets.length;
+      state.experiments = experiments.total;
+      state.usage = analytics.summary;
+      state.loading = false;
+    } catch {
+      state.loading = false;
+    }
+  });
 
   return (
     <div class="space-y-8">
       <div>
         <h1 class="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p class="text-text-muted">
-          ML/LLM Engineering Research Dashboard
-        </p>
+        <p class="text-text-muted">ML/LLM Engineering Platform</p>
       </div>
 
       <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
+        {[
+          { label: "Providers", value: state.providers, color: "text-primary" },
+          { label: "Instances", value: state.instances, color: "text-success" },
+          { label: "Models", value: state.models, color: "text-warning" },
+          { label: "Experiments", value: state.experiments, color: "text-info" },
+        ].map((stat) => (
           <Card key={stat.label}>
             <CardContent>
               <div class="flex flex-col space-y-1">
                 <span class="text-sm font-medium text-text-muted">{stat.label}</span>
                 <span class={`text-3xl font-bold tabular-nums ${stat.color}`}>
-                  {stat.value}
+                  {state.loading ? "..." : stat.value}
                 </span>
               </div>
             </CardContent>
@@ -44,30 +67,24 @@ export default component$(() => {
 
       <div class="grid gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div class="flex flex-col space-y-2">
-              <Button class="w-full">Scan Models</Button>
-              <Button variant="secondary" class="w-full">New Experiment</Button>
-              <Button variant="outline" class="w-full">Run Evaluation</Button>
+          <CardContent class="pt-6">
+            <h3 class="font-medium mb-2">Spending</h3>
+            <div class="text-2xl font-bold text-amber-400">
+              {state.loading ? "..." : `$${state.usage.totalCost.toFixed(4)}`}
             </div>
+            <p class="text-sm text-text-muted">
+              {state.loading ? "" : `${state.usage.totalTokens.toLocaleString()} tokens`}
+            </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div class="space-y-4">
-              {activities.map((activity) => (
-                <div key={activity.text} class="flex items-center justify-between">
-                  <span class="text-sm">{activity.text}</span>
-                  <span class="text-xs text-text-muted">{activity.time}</span>
-                </div>
-              ))}
+          <CardContent class="pt-6">
+            <h3 class="font-medium mb-2">Quick Actions</h3>
+            <div class="flex flex-wrap gap-2">
+              <a href="/integrations"><Button size="sm">Add Provider</Button></a>
+              <a href="/models"><Button size="sm" variant="outline">View Models</Button></a>
+              <a href="/settings"><Button size="sm" variant="outline">Settings</Button></a>
             </div>
           </CardContent>
         </Card>
@@ -77,11 +94,6 @@ export default component$(() => {
 });
 
 export const head: DocumentHead = {
-  title: "AI Lab - Dashboard",
-  meta: [
-    {
-      name: "description",
-      content: "ML/LLM Engineering Research Dashboard",
-    },
-  ],
+  title: "ML Engine - Dashboard",
+  meta: [{ name: "description", content: "ML/LLM Engineering Platform Dashboard" }],
 };

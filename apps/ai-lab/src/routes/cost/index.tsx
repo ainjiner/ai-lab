@@ -1,173 +1,82 @@
-import { component$ } from "@builder.io/qwik";
+import { component$, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
 import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
-import { Progress } from "~/components/ui/progress";
+import { api } from "~/lib/api";
 
 export default component$(() => {
-  const costData = {
-    total: 124.50,
-    thisMonth: 45.20,
-    lastMonth: 38.60,
-    projected: 52.00,
-    byModel: [
-      { model: "Llama 3.1 8B", cost: 18.50, tokens: 62000, percentage: 41 },
-      { model: "Qwen 2.5 72B", cost: 15.20, tokens: 25000, percentage: 34 },
-      { model: "Llama 3.1 70B", cost: 8.40, tokens: 10500, percentage: 19 },
-      { model: "DeepSeek R1", cost: 3.10, tokens: 15500, percentage: 7 },
-    ],
-    byUseCase: [
-      { useCase: "Chat Completions", cost: 22.50, percentage: 50 },
-      { useCase: "Embeddings", cost: 8.20, percentage: 18 },
-      { useCase: "Code Generation", cost: 7.80, percentage: 17 },
-      { useCase: "Summarization", cost: 6.70, percentage: 15 },
-    ],
-    daily: [
-      { day: "May 10", cost: 3.20 },
-      { day: "May 11", cost: 4.50 },
-      { day: "May 12", cost: 2.80 },
-      { day: "May 13", cost: 5.20 },
-      { day: "May 14", cost: 3.90 },
-      { day: "May 15", cost: 4.10 },
-      { day: "May 16", cost: 2.50 },
-    ],
-    recommendations: [
-      { title: "Switch to DeepSeek R1 for simple tasks", savings: 12.50 },
-      { title: "Use Llama 8B instead of 70B for chat", savings: 8.20 },
-      { title: "Enable caching for repeated prompts", savings: 5.80 },
-    ],
-  };
+  const state = useStore<any>({ summary: null, projection: null, budgets: [], loading: true });
 
-  const maxDailyCost = Math.max(...costData.daily.map((d) => d.cost));
+  useVisibleTask$(async () => {
+    try {
+      const [a, c, b] = await Promise.all([
+        api.get("/analytics/summary?period=monthly"),
+        api.get("/analytics/projection?days=30"),
+        api.get("/budgets"),
+      ]);
+      state.summary = a;
+      state.projection = c;
+      state.budgets = b.budgets;
+      state.loading = false;
+    } catch { state.loading = false; }
+  });
 
   return (
-    <div class="space-y-6">
+    <div class="space-y-8">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">Cost Analysis</h1>
-        <p class="text-text-muted">Track and optimize your LLM spending</p>
+        <h1 class="text-3xl font-bold tracking-tight">Cost</h1>
+        <p class="text-text-muted">Spending analysis and budget tracking</p>
       </div>
 
-      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent>
-            <div class="flex flex-col space-y-1">
-              <span class="text-sm font-medium text-text-muted">Total Spent</span>
-              <span class="text-3xl font-bold tabular-nums text-primary">${costData.total.toFixed(2)}</span>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <div class="flex flex-col space-y-1">
-              <span class="text-sm font-medium text-text-muted">This Month</span>
-              <span class="text-3xl font-bold tabular-nums">${costData.thisMonth.toFixed(2)}</span>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <div class="flex flex-col space-y-1">
-              <span class="text-sm font-medium text-text-muted">Projected</span>
-              <span class="text-3xl font-bold tabular-nums text-warning">${costData.projected.toFixed(2)}</span>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <div class="flex flex-col space-y-1">
-              <span class="text-sm font-medium text-text-muted">vs Last Month</span>
-              <span class="text-3xl font-bold tabular-nums text-success">+17%</span>
-            </div>
-          </CardContent>
-        </Card>
+      <div class="grid gap-4 md:grid-cols-3">
+        {state.summary && [
+          { label: "Monthly Spend", value: `$${state.summary.summary.totalCost.toFixed(4)}`, color: "text-amber-400" },
+          { label: "Request Count", value: state.summary.summary.requestCount, color: "text-primary" },
+          { label: "Avg Latency", value: `${state.summary.summary.avgLatency}ms`, color: "text-info" },
+        ].map((s) => (
+          <Card key={s.label}>
+            <CardContent class="pt-6">
+              <div class="text-sm text-text-muted">{s.label}</div>
+              <div class={`text-2xl font-bold tabular-nums ${s.color}`}>{state.loading ? "..." : s.value}</div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <div class="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Cost by Model</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div class="space-y-4">
-              {costData.byModel.map((item) => (
-                <div key={item.model} class="space-y-2">
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm font-medium">{item.model}</span>
-                    <div class="flex items-center gap-4">
-                      <span class="text-sm text-text-muted">{(item.tokens / 1000).toFixed(0)}K tokens</span>
-                      <span class="font-medium">${item.cost.toFixed(2)}</span>
-                    </div>
-                  </div>
-                  <Progress value={item.percentage} />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Cost by Use Case</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div class="space-y-4">
-              {costData.byUseCase.map((item) => (
-                <div key={item.useCase} class="space-y-2">
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm font-medium">{item.useCase}</span>
-                    <span class="font-medium">${item.cost.toFixed(2)}</span>
-                  </div>
-                  <Progress value={item.percentage} />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div class="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Daily Spending</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div class="flex items-end justify-between gap-2 h-40">
-              {costData.daily.map((item) => (
-                <div key={item.day} class="flex flex-col items-center gap-2">
-                  <div
-                    class="w-8 rounded bg-primary transition-all"
-                    style={`height: ${(item.cost / maxDailyCost) * 100}%`}
-                  />
-                  <span class="text-xs text-text-muted">{item.day.split(" ")[1]}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Optimization Recommendations</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Card>
+        <CardHeader><CardTitle>Projection</CardTitle></CardHeader>
+        <CardContent>
+          {state.projection ? (
             <div class="space-y-3">
-              {costData.recommendations.map((rec, i) => (
-                <div
-                  key={i}
-                  class="flex items-center justify-between rounded-lg border border-surface-light bg-surface/50 p-3"
-                >
-                  <span class="text-sm">{rec.title}</span>
-                  <Badge variant="success">Save ${rec.savings.toFixed(2)}/mo</Badge>
-                </div>
-              ))}
+              <div class="flex justify-between"><span>Current monthly</span><span>${state.projection.projection.currentTotal.toFixed(4)}</span></div>
+              <div class="flex justify-between"><span>Projected 30 days</span><span className="font-bold">${state.projection.projection.projected.toFixed(4)}</span></div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          ) : <p class="text-text-muted">Loading...</p>}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Budgets</CardTitle></CardHeader>
+        <CardContent>
+          {state.budgets.length === 0 ? (
+            <p class="text-text-muted">No budgets configured</p>
+          ) : state.budgets.map((b: any) => (
+            <div key={b.id} class="flex items-center justify-between py-2 border-b border-surface-light last:border-0">
+              <div>
+                <span class="font-medium">{b.name}</span>
+                <span class="text-xs text-text-muted ml-2">/{b.period}</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span>${b.limit.toFixed(2)}</span>
+                <Badge variant={b.enabled ? "success" : "secondary"}>{b.enabled ? "active" : "disabled"}</Badge>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
     </div>
   );
 });
 
-export const head: DocumentHead = {
-  title: "AI Lab - Cost Analysis",
-};
+export const head: DocumentHead = { title: "ML Engine - Cost" };

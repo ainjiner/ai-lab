@@ -1,75 +1,78 @@
-import { component$ } from "@builder.io/qwik";
+import { component$, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
-import { Card, CardContent } from "~/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "~/components/ui/table";
+import { api } from "~/lib/api";
+
+interface Experiment {
+  id: string; name: string; description?: string; status: string;
+  model: { provider: string; model: string };
+  results?: { tokens: { total: number }; cost: number; latency: number };
+  metadata: { createdAt: string; tags: string[]; rating?: number };
+}
 
 export default component$(() => {
-  const experiments = [
-    { id: 1, name: "Prompt Engineering v1", model: "Llama 3.1 8B", status: "completed", score: 0.92, runs: 45 },
-    { id: 2, name: "RAG Pipeline Test", model: "Qwen 2.5 72B", status: "running", score: null, runs: 12 },
-    { id: 3, name: "Code Generation Benchmark", model: "DeepSeek R1", status: "pending", score: null, runs: 0 },
-    { id: 4, name: "Reasoning Chain Test", model: "Llama 3.1 70B", status: "completed", score: 0.87, runs: 38 },
-    { id: 5, name: "Fine-tuning Evaluation", model: "Llama 3.1 8B", status: "failed", score: null, runs: 5 },
-  ];
+  const state = useStore<{ experiments: Experiment[]; loading: boolean }>({ experiments: [], loading: true });
 
-  const statusConfig: Record<string, { variant: "success" | "warning" | "secondary" | "destructive"; icon: string }> = {
-    completed: { variant: "success", icon: "✓" },
-    running: { variant: "warning", icon: "◐" },
-    pending: { variant: "secondary", icon: "○" },
-    failed: { variant: "destructive", icon: "✗" },
-  };
+  useVisibleTask$(async () => {
+    try {
+      const data = await api.get<{ experiments: Experiment[] }>("/experiments");
+      state.experiments = data.experiments;
+      state.loading = false;
+    } catch { state.loading = false; }
+  });
 
   return (
     <div class="space-y-8">
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-3xl font-bold tracking-tight">Experiments</h1>
-          <p class="text-text-muted">Track and manage ML experiments</p>
+          <p class="text-text-muted">Track and compare LLM experiments</p>
         </div>
         <Button>New Experiment</Button>
       </div>
 
-      <div class="grid gap-4">
-        {experiments.map((exp) => {
-          const config = statusConfig[exp.status];
-          return (
-            <Card key={exp.id}>
-              <CardContent>
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-4">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-surface-light text-lg">
-                      {config.icon}
-                    </div>
-                    <div class="flex flex-col">
-                      <span class="font-medium">{exp.name}</span>
-                      <span class="text-sm text-text-muted">{exp.model}</span>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-4">
-                    <div class="flex flex-col items-end">
-                      <Badge variant={config.variant}>{exp.status}</Badge>
-                      {exp.score !== null && (
-                        <span class="text-sm text-text-muted mt-1">
-                          Score: <span class="font-medium text-text">{exp.score}</span>
-                        </span>
-                      )}
-                    </div>
-                    <div class="flex flex-col items-end">
-                      <span class="text-sm text-text-muted">{exp.runs} runs</span>
-                    </div>
-                    <Button variant="ghost" size="sm">View</Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+      <Card>
+        <CardHeader><CardTitle>Run History ({state.experiments.length})</CardTitle></CardHeader>
+        <CardContent>
+          {state.loading ? <p class="text-text-muted text-center py-8">Loading...</p> : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Model</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Tokens</TableHead>
+                  <TableHead>Cost</TableHead>
+                  <TableHead>Latency</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {state.experiments.map((e) => (
+                  <TableRow key={e.id}>
+                    <TableCell class="font-medium">{e.name}</TableCell>
+                    <TableCell><span class="text-xs">{e.model.model.split("/").pop()}</span></TableCell>
+                    <TableCell>
+                      <Badge variant={e.status === "completed" ? "success" : e.status === "running" ? "warning" : "secondary"}>
+                        {e.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell class="text-xs">{e.results?.tokens.total.toLocaleString() || "—"}</TableCell>
+                    <TableCell class="text-xs">${e.results?.cost?.toFixed(6) || "—"}</TableCell>
+                    <TableCell class="text-xs">{e.results?.latency ? `${e.results.latency}ms` : "—"}</TableCell>
+                    <TableCell class="text-xs">{new Date(e.metadata.createdAt).toLocaleDateString()}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 });
 
-export const head: DocumentHead = {
-  title: "AI Lab - Experiments",
-};
+export const head: DocumentHead = { title: "ML Engine - Experiments" };
