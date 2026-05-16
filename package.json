@@ -9,7 +9,11 @@
     "apps/*"
   ],
   "scripts": {
+    "dev": "bun run dev:web",
+    "dev:web": "bun run --filter '@ai-lab/web' dev",
+    "dev:proxy": "bun run packages/sse-proxy/sse-proxy.ts",
     "build": "bun run --filter '*' build",
+    "build:web": "bun run --filter '@ai-lab/web' build",
     "test": "bun run --filter '*' test",
     "workspace-manager": "bun run packages/workspace-manager/index.ts",
     "proxy": "bun run packages/sse-proxy/sse-proxy.ts",

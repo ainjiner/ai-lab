@@ -1,6 +1,6 @@
 {
-  "name": "my-qwik-empty-starter",
-  "description": "Blank project with routing included",
+  "name": "@ai-lab/web",
+  "description": "AI Lab - ML/LLM Engineering Research Dashboard",
   "engines": {
     "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
   },
