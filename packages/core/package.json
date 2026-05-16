@@ -1,0 +1,23 @@
+{
+  "name": "@ml-engine/core",
+  "version": "0.1.0",
+  "description": "Core engine for ML/LLM Engineering Platform",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target node --sourcemap --external bun:sqlite",
+    "dev": "bun build ./src/index.ts --outdir ./dist --target node --watch --external bun:sqlite",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.4.0"
+  }
+}

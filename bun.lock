@@ -8,13 +8,14 @@
     "apps/ai-lab": {
       "name": "@ai-lab/web",
       "dependencies": {
-        "@qwik-ui/headless": "^0.7.4",
-        "@qwik-ui/utils": "^0.3.3",
+        "@ml-engine/core": "workspace:*",
       },
       "devDependencies": {
         "@builder.io/qwik": "^1.19.2",
         "@builder.io/qwik-city": "^1.19.2",
         "@eslint/js": "^9",
+        "@qwik-ui/headless": "^0.7.4",
+        "@qwik-ui/utils": "^0.3.3",
         "@tailwindcss/vite": "^4.1.4",
         "@types/bun": "*",
         "@types/node": "20.19.0",
@@ -31,6 +32,32 @@
         "undici": "*",
         "vite": "7.3.1",
         "vite-tsconfig-paths": "^4.2.1",
+      },
+    },
+    "packages/api": {
+      "name": "@ml-engine/api",
+      "version": "0.1.0",
+      "dependencies": {
+        "@ml-engine/core": "workspace:*",
+        "hono": "^4.12.19",
+      },
+    },
+    "packages/cli": {
+      "name": "@ml-engine/cli",
+      "version": "0.1.0",
+      "bin": {
+        "ml-engine": "./src/index.ts",
+      },
+      "dependencies": {
+        "@ml-engine/core": "workspace:*",
+      },
+    },
+    "packages/core": {
+      "name": "@ml-engine/core",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.4.0",
       },
     },
     "packages/openai-compatible": {
@@ -57,7 +84,7 @@
     },
     "packages/workspace-manager": {
       "name": "@ai-lab/workspace-manager",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "bin": {
         "baseten-workspace": "./index.ts",
       },
@@ -267,6 +294,12 @@
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
     "@mdx-js/mdx": ["@mdx-js/mdx@3.1.1", "", { "dependencies": { "@types/estree": "^1.0.0", "@types/estree-jsx": "^1.0.0", "@types/hast": "^3.0.0", "@types/mdx": "^2.0.0", "acorn": "^8.0.0", "collapse-white-space": "^2.0.0", "devlop": "^1.0.0", "estree-util-is-identifier-name": "^3.0.0", "estree-util-scope": "^1.0.0", "estree-walker": "^3.0.0", "hast-util-to-jsx-runtime": "^2.0.0", "markdown-extensions": "^2.0.0", "recma-build-jsx": "^1.0.0", "recma-jsx": "^1.0.0", "recma-stringify": "^1.0.0", "rehype-recma": "^1.0.0", "remark-mdx": "^3.0.0", "remark-parse": "^11.0.0", "remark-rehype": "^11.0.0", "source-map": "^0.7.0", "unified": "^11.0.0", "unist-util-position-from-estree": "^2.0.0", "unist-util-stringify-position": "^4.0.0", "unist-util-visit": "^5.0.0", "vfile": "^6.0.0" } }, "sha512-f6ZO2ifpwAQIpzGWaBQT2TXxPv6z3RBzQKpVftEWN78Vl/YweF1uwussDx8ECAXVtr3Rs89fKyG9YlzUs9DyGQ=="],
+
+    "@ml-engine/api": ["@ml-engine/api@workspace:packages/api"],
+
+    "@ml-engine/cli": ["@ml-engine/cli@workspace:packages/cli"],
+
+    "@ml-engine/core": ["@ml-engine/core@workspace:packages/core"],
 
     "@nodelib/fs.scandir": ["@nodelib/fs.scandir@2.1.5", "", { "dependencies": { "@nodelib/fs.stat": "2.0.5", "run-parallel": "^1.1.9" } }, "sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g=="],
 
@@ -737,6 +770,8 @@
     "hast-util-to-jsx-runtime": ["hast-util-to-jsx-runtime@2.3.6", "", { "dependencies": { "@types/estree": "^1.0.0", "@types/hast": "^3.0.0", "@types/unist": "^3.0.0", "comma-separated-tokens": "^2.0.0", "devlop": "^1.0.0", "estree-util-is-identifier-name": "^3.0.0", "hast-util-whitespace": "^3.0.0", "mdast-util-mdx-expression": "^2.0.0", "mdast-util-mdx-jsx": "^3.0.0", "mdast-util-mdxjs-esm": "^2.0.0", "property-information": "^7.0.0", "space-separated-tokens": "^2.0.0", "style-to-js": "^1.0.0", "unist-util-position": "^5.0.0", "vfile-message": "^4.0.0" } }, "sha512-zl6s8LwNyo1P9uw+XJGvZtdFF1GdAkOg8ujOw+4Pyb76874fLps4ueHXDhXWdk6YHQ6OgUtinliG7RsYvCbbBg=="],
 
     "hast-util-whitespace": ["hast-util-whitespace@3.0.0", "", { "dependencies": { "@types/hast": "^3.0.0" } }, "sha512-88JUN06ipLwsnv+dVn+OIYOvAuvBMy/Qoi6O7mQHxdPXpjy+Cd6xRkWwux7DKO+4sYILtLBRIKgsdpS2gQc7qw=="],
+
+    "hono": ["hono@4.12.19", "", {}, "sha512-xa3eYXYXx68XTT4hZ7dRzsXBhaq85ToSrlUJNoR0gwz/1Ap/CNwX47wfvV7pc/xWhjKVVkLT7zBJy8chhNguqQ=="],
 
     "iconv-lite": ["iconv-lite@0.6.3", "", { "dependencies": { "safer-buffer": ">= 2.1.2 < 3.0.0" } }, "sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw=="],
 
