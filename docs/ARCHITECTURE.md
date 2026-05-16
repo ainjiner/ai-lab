@@ -31,7 +31,7 @@ AI Lab is structured as a monorepo with three layers:
 ```
 User clicks "Models" page
   → Qwik useVisibleTask$() calls api.get("/models")
-  → apps/ai-lab/src/lib/api.ts sends fetch to http://localhost:4321/api/models
+  → apps/web/src/lib/api.ts sends fetch to http://localhost:4321/api/models
   → packages/api/src/routes/index.ts handler:
       modelCatalog.listModels()
         → store.listModels()
@@ -205,7 +205,7 @@ The store auto-migrates on first load:
 ## Package Dependency Graph
 
 ```
-@ai-lab/web (apps/ai-lab)
+@ml-engine/web (apps/web)
   └── HTTP → @ml-engine/api
 
 @ml-engine/api (packages/api)
@@ -299,7 +299,7 @@ layout.tsx
 
 ### API Client
 
-Located in `apps/ai-lab/src/lib/api.ts`:
+Located in `apps/web/src/lib/api.ts`:
 
 ```typescript
 const API_URL = process.env.API_URL || "http://localhost:4321/api";

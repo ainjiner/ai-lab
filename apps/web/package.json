@@ -1,6 +1,6 @@
 {
-  "name": "@ai-lab/web",
-  "description": "AI Lab - ML/LLM Engineering Research Dashboard",
+  "name": "@ml-engine/web",
+  "description": "AI Lab Web UI - ML/LLM Engineering Platform Dashboard",
   "engines": {
     "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
   },

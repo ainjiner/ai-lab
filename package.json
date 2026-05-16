@@ -10,12 +10,12 @@
   ],
   "scripts": {
     "dev": "bun run dev:web",
-    "dev:web": "bun run --filter '@ai-lab/web' dev",
+    "dev:web": "bun run --filter '@ml-engine/web' dev",
     "dev:cli": "bun run --filter '@ml-engine/cli' dev",
     "dev:api": "bun run --filter '@ml-engine/api' dev",
     "build": "bun run --filter '*' build",
     "build:core": "bun run --filter '@ml-engine/core' build",
-    "build:web": "bun run --filter '@ai-lab/web' build",
+    "build:web": "bun run --filter '@ml-engine/web' build",
     "test": "bun run --filter '*' test",
     "cli": "bun run packages/cli/src/index.ts",
     "api": "bun run packages/api/src/index.ts"

@@ -62,7 +62,7 @@ packages/
 └── sse-proxy/             # DEPRECATED — legacy SSE proxy, kept for reference
 
 apps/
-└── ai-lab/               # @ai-lab/web — Web UI (Qwik + Tailwind)
+└── web/                  # @ml-engine/web — Web UI (Qwik + Tailwind)
     └── src/
         ├── components/   # Reusable Qwik components
         ├── routes/       # Page routes (dashboard, models, experiments, etc.)
