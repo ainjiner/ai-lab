@@ -620,9 +620,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               return;
             }
 
-            // TODO we lost type safety on Chunk, most likely due to the error schema. MUST FIX
-            // remove this workaround when the issue is fixed
-            const value = chunk.value as z.infer<typeof chunkBaseSchema>;
+            const value: z.infer<typeof chunkBaseSchema> = chunk.value;
 
             if (isFirstChunk) {
               isFirstChunk = false;
@@ -848,7 +846,7 @@ const OpenAICompatibleChatResponseSchema = z.looseObject({
   usage: openaiCompatibleTokenUsageSchema,
 });
 
-const chunkBaseSchema = z.looseObject({
+const chunkBaseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
