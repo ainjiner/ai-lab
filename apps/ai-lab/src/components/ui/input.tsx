@@ -1,6 +1,6 @@
 import { component$, PropsOf } from "@builder.io/qwik";
 
-interface InputProps extends PropsOf<"input"> {}
+type InputProps = PropsOf<"input">;
 
 export const Input = component$(({ class: className, ...props }: InputProps) => {
   return (
