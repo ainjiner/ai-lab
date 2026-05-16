@@ -24,8 +24,46 @@ git clone https://github.com/sandikodev/baseten-workspace-manager.git
 cd baseten-workspace-manager
 
 # Make executable
-chmod +x src/index.ts
+chmod +x src/index.ts proxy/sse-proxy.ts
 ```
+
+## SSE Buffer Proxy
+
+Due to [SSE chunk fragmentation issue](https://github.com/vercel/ai/issues/15343) in `@ai-sdk/baseten` and `@ai-sdk/openai-compatible`, this proxy buffers tiny SSE chunks before forwarding to the client.
+
+### Start Proxy
+
+```bash
+# Terminal 1: Start SSE proxy
+bun run proxy/sse-proxy.ts
+
+# Output:
+# ╔════════════════════════════════════════════════════════╗
+# ║  SSE Stream Inspector + Content Buffer Proxy          ║
+# ║  Listening on http://127.0.0.1:8899                       ║
+# ║  Buffer threshold: 80 chars                              ║
+# ╚════════════════════════════════════════════════════════╝
+```
+
+### Configuration
+
+The proxy runs on port `8899` by default. Configure workspace manager to use it:
+
+```bash
+bun run src/index.ts set-proxy http://127.0.0.1:8899/v1
+```
+
+### How It Works
+
+1. Receives streaming response from Baseten
+2. Buffers content until threshold (80 chars) or sentence boundary
+3. Flushes buffered content as single SSE event
+4. Prevents UI stuttering from 1-2 word chunks
+
+### Related
+
+- [Issue #15343](https://github.com/vercel/ai/issues/15343) - SSE chunk fragmentation
+- [PR #15344](https://github.com/vercel/ai/pull/15344) - Proposed fix with `minChunkSize` option
 
 ## Quick Start
 
