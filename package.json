@@ -1,7 +1,7 @@
 {
-  "name": "baseten-workspace-manager",
-  "version": "1.0.0",
-  "description": "AI Lab - Baseten Workspace Manager with SSE Proxy and OpenAI-Compatible SDK",
+  "name": "ml-llm-engineering-platform",
+  "version": "0.1.0",
+  "description": "ML/LLM Engineering Platform - Unified provider, model, and config management",
   "type": "module",
   "private": true,
   "workspaces": [
@@ -11,14 +11,16 @@
   "scripts": {
     "dev": "bun run dev:web",
     "dev:web": "bun run --filter '@ai-lab/web' dev",
-    "dev:proxy": "bun run packages/sse-proxy/sse-proxy.ts",
+    "dev:cli": "bun run --filter '@ml-engine/cli' dev",
+    "dev:api": "bun run --filter '@ml-engine/api' dev",
     "build": "bun run --filter '*' build",
+    "build:core": "bun run --filter '@ml-engine/core' build",
     "build:web": "bun run --filter '@ai-lab/web' build",
     "test": "bun run --filter '*' test",
-    "workspace": "bun run packages/workspace-manager/index.ts",
-    "proxy:manager": "bun run packages/sse-proxy/proxy-manager.ts"
+    "cli": "bun run packages/cli/src/index.ts",
+    "api": "bun run packages/api/src/index.ts"
   },
-  "keywords": ["baseten", "opencode", "ai", "llm", "workspace", "model-scanner", "sse-proxy", "openai-compatible"],
+  "keywords": ["ml", "llm", "ai", "provider", "model", "config", "opencode", "cursor", "baseten", "openrouter", "hono"],
   "author": "sandikodev",
   "license": "MIT"
 }

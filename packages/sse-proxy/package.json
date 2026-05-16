@@ -1,14 +1,10 @@
 {
   "name": "@ai-lab/sse-proxy",
   "version": "1.0.0",
-  "description": "SSE Stream Buffer Proxy for smooth LLM streaming",
+  "description": "DEPRECATED - SSE Stream Buffer Proxy. Replaced by forked AI SDK in packages/openai-compatible",
   "type": "module",
-  "main": "sse-proxy.ts",
-  "scripts": {
-    "start": "bun run sse-proxy.ts",
-    "manager": "bun run proxy-manager.ts"
-  },
-  "keywords": ["sse", "proxy", "streaming", "llm"],
+  "private": true,
+  "keywords": ["sse", "proxy", "streaming", "llm", "deprecated"],
   "author": "sandikodev",
   "license": "MIT"
 }

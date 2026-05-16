@@ -19,3 +19,6 @@ secrets.json
 
 # Build
 dist/
+
+# Session artifacts
+.sisyphus/
