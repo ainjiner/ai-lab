@@ -15,9 +15,8 @@
     "build": "bun run --filter '*' build",
     "build:web": "bun run --filter '@ai-lab/web' build",
     "test": "bun run --filter '*' test",
-    "workspace-manager": "bun run packages/workspace-manager/index.ts",
-    "proxy": "bun run packages/sse-proxy/sse-proxy.ts",
-    "proxy-manager": "bun run packages/sse-proxy/proxy-manager.ts"
+    "workspace": "bun run packages/workspace-manager/index.ts",
+    "proxy:manager": "bun run packages/sse-proxy/proxy-manager.ts"
   },
   "keywords": ["baseten", "opencode", "ai", "llm", "workspace", "model-scanner", "sse-proxy", "openai-compatible"],
   "author": "sandikodev",
