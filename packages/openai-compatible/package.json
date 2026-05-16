@@ -1,0 +1,62 @@
+{
+  "name": "@ai-lab/openai-compatible",
+  "version": "3.0.0-minChunkSize.1",
+  "description": "Fork of @ai-sdk/openai-compatible with minChunkSize option for smooth streaming",
+  "type": "module",
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup --tsconfig tsconfig.build.json",
+    "build:watch": "tsup --watch",
+    "type-check": "tsc --build"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@ai-sdk/provider": "^2.0.0",
+    "@ai-sdk/provider-utils": "^3.0.0",
+    "eventsource-parser": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8",
+    "typescript": "^5.0.0",
+    "zod": "^3.25.76"
+  },
+  "peerDependencies": {
+    "zod": "^3.25.76 || ^4.1.8"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "homepage": "https://github.com/sandikodev/baseten-workspace-manager",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sandikodev/baseten-workspace-manager",
+    "directory": "packages/openai-compatible"
+  },
+  "keywords": [
+    "ai",
+    "llm",
+    "streaming",
+    "openai-compatible",
+    "minChunkSize"
+  ]
+}

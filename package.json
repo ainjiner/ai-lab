@@ -1,14 +1,20 @@
 {
   "name": "baseten-workspace-manager",
   "version": "1.0.0",
-  "description": "Manage multiple Baseten API workspaces with dynamic model scanning for OpenCode",
+  "description": "AI Lab - Baseten Workspace Manager with SSE Proxy and OpenAI-Compatible SDK",
   "type": "module",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "list": "bun run src/index.ts list",
-    "scan": "bun run src/index.ts scan",
-    "sync": "bun run src/index.ts sync"
+    "build": "bun run --filter '*' build",
+    "test": "bun run --filter '*' test",
+    "workspace-manager": "bun run packages/workspace-manager/index.ts",
+    "proxy": "bun run packages/sse-proxy/sse-proxy.ts",
+    "proxy-manager": "bun run packages/sse-proxy/proxy-manager.ts"
   },
-  "keywords": ["baseten", "opencode", "ai", "llm", "workspace", "model-scanner"],
+  "keywords": ["baseten", "opencode", "ai", "llm", "workspace", "model-scanner", "sse-proxy", "openai-compatible"],
   "author": "sandikodev",
   "license": "MIT"
 }

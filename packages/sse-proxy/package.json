@@ -1,0 +1,14 @@
+{
+  "name": "@ai-lab/sse-proxy",
+  "version": "1.0.0",
+  "description": "SSE Stream Buffer Proxy for smooth LLM streaming",
+  "type": "module",
+  "main": "sse-proxy.ts",
+  "scripts": {
+    "start": "bun run sse-proxy.ts",
+    "manager": "bun run proxy-manager.ts"
+  },
+  "keywords": ["sse", "proxy", "streaming", "llm"],
+  "author": "sandikodev",
+  "license": "MIT"
+}
