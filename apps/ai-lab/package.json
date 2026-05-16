@@ -4,7 +4,7 @@
   "description": "AI Lab - Web UI for ML/LLM Engineering Research",
   "type": "module",
   "scripts": {
-    "dev": "vite --mode ssr",
+    "dev": "vite",
     "build": "vite build && vite build -c adapters/cloudflare-pages/vite.config.ts",
     "preview": "vite preview"
   },
