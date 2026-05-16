@@ -1,56 +1,146 @@
-# Baseten Workspace Manager
+# AI Lab - Baseten Workspace Manager
 
-Manage multiple Baseten API workspaces with dynamic model scanning for OpenCode.
+A comprehensive ML/LLM Engineering research platform with workspace management, SSE proxy, and web UI.
 
-## Features
+## Project Structure
 
-- **Multiple Workspaces**: Manage multiple Baseten API keys/workspaces dynamically
-- **Model Scanning**: Automatically scan available models from Baseten API
-- **Auto-sync**: Sync workspaces to OpenCode configuration files
-- **SSE Proxy Support**: Works with SSE buffer proxy for smooth streaming
+```
+baseten-workspace-manager/
+├── packages/
+│   ├── openai-compatible/    # Forked SDK with minChunkSize
+│   ├── workspace-manager/     # CLI tool for workspace management
+│   └── sse-proxy/            # SSE buffer proxy
+├── apps/
+│   └── ai-lab/               # QwikJS Web UI
+└── README.md
+```
 
-## Prerequisites
-
-- [Bun](https://bun.sh/) runtime
-- [OpenCode](https://opencode.ai/) installed
-- Baseten API key(s)
-- SSE buffer proxy (optional, for smooth streaming)
-
-## Installation
+## Quick Start
 
 ```bash
-# Clone the repository
+# Clone
 git clone https://github.com/sandikodev/baseten-workspace-manager.git
 cd baseten-workspace-manager
 
-# Make executable
-chmod +x src/index.ts proxy/sse-proxy.ts
+# Install
+bun install
+
+# Run Web UI
+bun run dev
+
+# Run SSE Proxy
+bun run dev:proxy
 ```
+
+## AI Lab Web UI
+
+A modern web dashboard for ML/LLM Engineering research built with QwikJS and Tailwind CSS v4.
+
+### Features
+
+| Page | Description |
+|------|-------------|
+| **Dashboard** | Overview metrics, quick actions, recent activity |
+| **Models** | Model management and configuration |
+| **Prompts** | Playground with templates, parameters, history |
+| **Experiments** | Track and manage ML experiments |
+| **Evaluations** | Benchmark results with progress charts |
+| **Compare** | Side-by-side model comparison |
+| **Tokens** | Token usage tracking |
+| **Cost** | Spending analysis with projections |
+| **Tracing** | Request/response logs with search |
+| **Integrations** | Service connections (Baseten, Pinecone, etc.) |
+| **Settings** | API configuration and preferences |
+
+### Navigation
+
+```
+📊 Overview
+   ├── Dashboard
+   └── Models
+
+🔬 Research
+   ├── Prompts
+   ├── Experiments
+   ├── Evaluations
+   └── Compare
+
+📈 Monitoring
+   ├── Tokens
+   ├── Cost
+   └── Tracing
+
+⚙️ Settings
+   ├── Integrations
+   └── Settings
+```
+
+### Tech Stack
+
+- **Framework**: QwikJS 1.19+
+- **Styling**: Tailwind CSS v4
+- **Runtime**: Bun
+- **UI Components**: Custom shadcn-style components
+
+### Development
+
+```bash
+# Start dev server
+bun run dev
+
+# Build for production
+bun run build:web
+
+# Serve production build
+bun run serve
+```
+
+## Workspace Manager CLI
+
+Manage multiple Baseten API workspaces with dynamic model scanning.
+
+### Commands
+
+```bash
+# List workspaces
+bun run workspace list
+
+# Add workspace
+bun run workspace add <name> <api_key>
+
+# Scan models
+bun run workspace scan <name>
+
+# Apply models
+bun run workspace apply-models <name> --all
+
+# Sync to OpenCode
+bun run workspace sync
+```
+
+### Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `~/.config/opencode/baseten-workspaces.json` | Workspace definitions |
+| `~/.local/share/opencode/auth.json` | OpenCode auth store |
+| `~/.config/opencode/opencode.json` | OpenCode config |
 
 ## SSE Buffer Proxy
 
-Due to [SSE chunk fragmentation issue](https://github.com/vercel/ai/issues/15343) in `@ai-sdk/baseten` and `@ai-sdk/openai-compatible`, this proxy buffers tiny SSE chunks before forwarding to the client.
+Workaround for [SSE chunk fragmentation issue](https://github.com/vercel/ai/issues/15343).
 
-### Start Proxy
-
-```bash
-# Terminal 1: Start SSE proxy
-bun run proxy/sse-proxy.ts
-
-# Output:
-# ╔════════════════════════════════════════════════════════╗
-# ║  SSE Stream Inspector + Content Buffer Proxy          ║
-# ║  Listening on http://127.0.0.1:8899                       ║
-# ║  Buffer threshold: 80 chars                              ║
-# ╚════════════════════════════════════════════════════════╝
-```
-
-### Configuration
-
-The proxy runs on port `8899` by default. Configure workspace manager to use it:
+### Usage
 
 ```bash
-bun run src/index.ts set-proxy http://127.0.0.1:8899/v1
+# Start proxy
+bun run dev:proxy
+
+# Manage proxy
+bun run proxy:manager start
+bun run proxy:manager stop
+bun run proxy:manager status
+bun run proxy:manager toggle
 ```
 
 ### How It Works
@@ -60,114 +150,27 @@ bun run src/index.ts set-proxy http://127.0.0.1:8899/v1
 3. Flushes buffered content as single SSE event
 4. Prevents UI stuttering from 1-2 word chunks
 
-### Related
+## @ai-lab/openai-compatible
 
-- [Issue #15343](https://github.com/vercel/ai/issues/15343) - SSE chunk fragmentation
-- [PR #15344](https://github.com/vercel/ai/pull/15344) - Proposed fix with `minChunkSize` option
+Forked `@ai-sdk/openai-compatible` with `minChunkSize` option for smooth streaming.
 
-## Quick Start
-
-```bash
-# List all workspaces
-bun run src/index.ts list
-
-# Add a new workspace
-bun run src/index.ts add my-workspace YOUR_API_KEY
-
-# Scan available models
-bun run src/index.ts scan my-workspace
-
-# Apply all scanned models
-bun run src/index.ts apply-models my-workspace --all
-
-# Sync to OpenCode config
-bun run src/index.ts sync
-```
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `list` | List all configured workspaces |
-| `add <name> <api_key> [models...]` | Add a new workspace |
-| `remove <name>` | Remove a workspace |
-| `scan <workspace>` | Scan available models from a workspace |
-| `scan-all` | Scan all workspaces |
-| `apply-models <workspace> <model_ids...>` | Apply specific models to workspace |
-| `apply-models <workspace> --all` | Apply all scanned models to workspace |
-| `sync` | Sync to opencode.json and auth.json |
-| `generate` | Show generated config (dry-run) |
-| `set-proxy <url>` | Set proxy URL |
-
-## Configuration Files
-
-The tool manages three configuration files:
-
-| File | Purpose |
-|------|---------|
-| `~/.config/opencode/baseten-workspaces.json` | Workspace definitions (API keys, models) |
-| `~/.local/share/opencode/auth.json` | OpenCode authentication store |
-| `~/.config/opencode/opencode.json` | OpenCode main configuration |
-
-## Workflow
-
-### 1. Add Workspace
+### Installation
 
 ```bash
-bun run src/index.ts add production YOUR_API_KEY
-bun run src/index.ts add staging ANOTHER_API_KEY
+cd packages/openai-compatible
+bun install
+bun run build
 ```
 
-### 2. Scan Models
+### Usage
 
-```bash
-bun run src/index.ts scan production
-```
+```typescript
+import { createOpenAICompatible } from '@ai-lab/openai-compatible';
 
-Output:
-```
-🔍 Scanning models for workspace "production"...
-
-Found 9 models:
-
-[1] zai-org/GLM-4.7
-    Name: GLM 4.7
-    Context: 200K tokens | Max output: 200K
-    Features: tools, json_mode, structured_outputs
-    Price: $0.000000/1M in, $0.000002/1M out
-
-[2] zai-org/GLM-5
-    Name: GLM 5
-    Context: 203K tokens | Max output: 203K
-    Features: tools, json_mode, structured_outputs
-    Price: $0.000001/1M in, $0.000003/1M out
-
-...
-```
-
-### 3. Apply Models
-
-```bash
-# Apply specific models
-bun run src/index.ts apply-models production zai-org/GLM-5 deepseek-ai/DeepSeek-V4-Pro
-
-# Or apply all scanned models
-bun run src/index.ts apply-models production --all
-```
-
-### 4. Sync to OpenCode
-
-```bash
-bun run src/index.ts sync
-```
-
-### 5. Use in OpenCode
-
-After syncing, models are available as:
-
-```
-baseten-ws-production/zai-org/GLM-5
-baseten-ws-staging/deepseek-ai/DeepSeek-V4-Pro
+const provider = createOpenAICompatible({
+  baseURL: 'https://api.baseten.co/v1',
+  minChunkSize: 80,  // Buffer chunks until 80 chars
+});
 ```
 
 ## Available Models
@@ -175,7 +178,7 @@ baseten-ws-staging/deepseek-ai/DeepSeek-V4-Pro
 Baseten provides these models (as of May 2026):
 
 | Model ID | Display Name | Context | Features |
-|-----------|--------------|---------|----------|
+|----------|--------------|---------|----------|
 | `openai/gpt-oss-120b` | OpenAI GPT 120B | 128K | tools, reasoning, json_mode |
 | `deepseek-ai/DeepSeek-V3.1` | DeepSeek V3.1 | 164K | tools, reasoning |
 | `deepseek-ai/DeepSeek-V4-Pro` | DeepSeek V4 Pro | 131K | tools, reasoning |
@@ -186,113 +189,26 @@ Baseten provides these models (as of May 2026):
 | `MiniMaxAI/MiniMax-M2.5` | Minimax M2.5 | 204K | tools, reasoning |
 | `nvidia/Nemotron-120B-A12B` | Nemotron Super | 203K | tools, reasoning |
 
-## SSE Buffer Proxy
+## Scripts
 
-Due to [SSE chunk fragmentation issue](https://github.com/vercel/ai/issues/15343), it's recommended to use the SSE buffer proxy:
-
-```bash
-# Start proxy
-cd ~/project/sse-buffer-proxy
-bun run sse-proxy.ts
-
-# Set proxy URL in workspace manager
-bun run src/index.ts set-proxy http://127.0.0.1:8899/v1
-```
-
-## Example Configuration
-
-### baseten-workspaces.json
-
-```json
-{
-  "proxyUrl": "http://127.0.0.1:8899/v1",
-  "workspaces": {
-    "production": {
-      "apiKey": "abc123...",
-      "models": [
-        "zai-org/GLM-5",
-        "deepseek-ai/DeepSeek-V4-Pro"
-      ],
-      "lastScan": "2026-05-16T10:00:00.000Z"
-    },
-    "staging": {
-      "apiKey": "xyz789...",
-      "models": [
-        "zai-org/GLM-4.7"
-      ]
-    }
-  }
-}
-```
-
-### Generated opencode.json Entry
-
-```json
-{
-  "provider": {
-    "baseten-ws-production": {
-      "npm": "@ai-sdk/baseten",
-      "name": "Baseten (production)",
-      "options": {
-        "baseURL": "http://127.0.0.1:8899/v1"
-      },
-      "models": {
-        "zai-org/GLM-5": {
-          "name": "GLM 5"
-        },
-        "deepseek-ai/DeepSeek-V4-Pro": {
-          "name": "DeepSeek V4 Pro"
-        }
-      }
-    }
-  }
-}
-```
-
-### Generated auth.json Entry
-
-```json
-{
-  "baseten-ws-production": {
-    "type": "api",
-    "key": "abc123..."
-  }
-}
-```
-
-## Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `XDG_CONFIG_HOME` | `~/.config` | Config directory location |
-
-## Troubleshooting
-
-### "No scanned models found"
-
-Run `scan <workspace>` before `apply-models`:
-
-```bash
-bun run src/index.ts scan my-workspace
-bun run src/index.ts apply-models my-workspace --all
-```
-
-### "Failed to fetch models"
-
-1. Check if proxy is running (if using proxy)
-2. Verify API key is correct
-3. Check network connectivity
-
-### Models not appearing in OpenCode
-
-1. Run `sync` to update configuration
-2. Restart OpenCode
+| Command | Description |
+|---------|-------------|
+| `bun run dev` | Start AI Lab Web UI |
+| `bun run dev:web` | Start AI Lab Web UI (explicit) |
+| `bun run dev:proxy` | Start SSE proxy |
+| `bun run build` | Build all packages |
+| `bun run build:web` | Build AI Lab |
+| `bun run test` | Run tests |
+| `bun run workspace` | Workspace manager CLI |
+| `bun run proxy:manager` | Proxy manager |
 
 ## Related
 
-- [SSE Buffer Proxy](https://github.com/vercel/ai/issues/15343) - Workaround for SSE fragmentation
+- [Issue #15343](https://github.com/vercel/ai/issues/15343) - SSE chunk fragmentation
+- [PR #15344](https://github.com/vercel/ai/pull/15344) - minChunkSize fix proposal
 - [OpenCode](https://opencode.ai/) - AI coding assistant
 - [Baseten](https://baseten.co/) - LLM inference platform
+- [Qwik](https://qwik.dev/) - Web framework
 
 ## License
 
