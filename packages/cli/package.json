@@ -1,0 +1,17 @@
+{
+  "name": "@ml-engine/cli",
+  "version": "0.1.0",
+  "description": "CLI for ML/LLM Engineering Platform",
+  "type": "module",
+  "main": "./src/index.ts",
+  "bin": {
+    "ml-engine": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun run --watch src/index.ts"
+  },
+  "dependencies": {
+    "@ml-engine/core": "workspace:*"
+  }
+}

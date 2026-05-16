@@ -1,0 +1,15 @@
+{
+  "name": "@ml-engine/api",
+  "version": "0.1.0",
+  "description": "REST API for ML/LLM Engineering Platform",
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun run --watch src/index.ts"
+  },
+  "dependencies": {
+    "@ml-engine/core": "workspace:*",
+    "hono": "^4.12.19"
+  }
+}
