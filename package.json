@@ -1,0 +1,14 @@
+{
+  "name": "baseten-workspace-manager",
+  "version": "1.0.0",
+  "description": "Manage multiple Baseten API workspaces with dynamic model scanning for OpenCode",
+  "type": "module",
+  "scripts": {
+    "list": "bun run src/index.ts list",
+    "scan": "bun run src/index.ts scan",
+    "sync": "bun run src/index.ts sync"
+  },
+  "keywords": ["baseten", "opencode", "ai", "llm", "workspace", "model-scanner"],
+  "author": "sandikodev",
+  "license": "MIT"
+}

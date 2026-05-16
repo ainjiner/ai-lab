@@ -1,0 +1,12 @@
+{
+  "proxyUrl": "http://127.0.0.1:8899/v1",
+  "workspaces": {
+    "example-workspace": {
+      "apiKey": "YOUR_API_KEY_HERE",
+      "models": [
+        "zai-org/GLM-5",
+        "deepseek-ai/DeepSeek-V4-Pro"
+      ]
+    }
+  }
+}
