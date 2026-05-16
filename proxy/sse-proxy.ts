@@ -1,12 +1,9 @@
+#!/usr/bin/env bun
 /**
  * SSE Stream Inspector + Content Buffer Proxy
- *
- * Buffers ALL streaming tokens (content + reasoning) until a threshold or
- * sentence boundary is reached, then flushes. Prevents UI stuttering from
- * Baseten's tiny 1-2 word chunks.
- *
+ * 
  * Usage:
- *   BASETEN_API_KEY="..." bun run /tmp/sse-proxy.ts
+ *   bun run sse-proxy.ts
  *
  * Starts on :8899 — point opencode.json baseURL to http://127.0.0.1:8899/v1
  */
@@ -16,7 +13,6 @@ import type { Server } from "bun";
 const BASETEN_ORIGIN = "https://inference.baseten.co";
 const PORT = 8899;
 const BUFFER_THRESHOLD = 80;
-const FLUSH_AT_NEWLINE = true;
 const FLUSH_AT_SENTENCE = true;
 
 const server = Bun.serve({
@@ -40,9 +36,8 @@ const server = Bun.serve({
         headers,
         body: req.body,
       });
-      console.log(
-        `  → ${res.status} ${(await res.clone().text()).length} bytes`
-      );
+      const text = await res.clone().text();
+      console.log(`  → ${res.status} ${text.length} bytes`);
       return res;
     }
 
@@ -69,7 +64,11 @@ const server = Bun.serve({
         const enc = new TextEncoder();
 
         function emitSSE(data: string) {
-          controller.enqueue(enc.encode(`data: ${data}\n\n`));
+          try {
+            controller.enqueue(enc.encode(`data: ${data}\n\n`));
+          } catch (e) {
+            console.error(`  [error] Failed to emit SSE: ${e}`);
+          }
         }
 
         function shouldFlush(text: string): boolean {
@@ -119,6 +118,14 @@ const server = Bun.serve({
           flushContent();
         }
 
+        function safeParseJSON(raw: string): Record<string, unknown> | null {
+          try {
+            return JSON.parse(raw);
+          } catch {
+            return null;
+          }
+        }
+
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -130,81 +137,91 @@ const server = Bun.serve({
           buf = lines.pop() || "";
 
           for (const line of lines) {
-            if (!line.startsWith("data: ")) {
-              controller.enqueue(enc.encode(line + "\n"));
+            const trimmedLine = line.trim();
+            
+            if (!trimmedLine) continue;
+            
+            if (!trimmedLine.startsWith("data: ")) {
               continue;
             }
 
-            const raw = line.slice(6);
+            const raw = trimmedLine.slice(6);
             eventCount++;
 
             if (raw === "[DONE]") {
               flushAll();
               emitSSE("[DONE]");
               console.log(`  [${eventCount}] [DONE]`);
-            } else {
-              try {
-                const json = JSON.parse(raw);
-                const choice = json.choices?.[0];
-                const delta = choice?.delta;
-                if (!delta) {
-                  emitSSE(raw);
-                  continue;
-                }
+              continue;
+            }
 
-                const content = delta.content || "";
-                const reasoning = delta.reasoning_content || "";
-                const finishReason = choice?.finish_reason || null;
-                const ts = Date.now();
+            const json = safeParseJSON(raw);
+            
+            if (!json) {
+              console.log(`  [${eventCount}] (invalid JSON, skipping): ${raw.slice(0, 60)}...`);
+              continue;
+            }
 
-                if (reasoning) {
-                  reasoningBuf += reasoning;
-                  console.log(
-                    `  [${eventCount}] @${ts} | +${reasoning.length} chars | buf: ${reasoningBuf.length} [REASONING]`
-                  );
-                  if (shouldFlush(reasoningBuf)) {
-                    flushReasoning();
-                  }
-                }
+            const choice = json.choices?.[0];
+            const delta = choice?.delta;
 
-                if (content) {
-                  contentBuf += content;
-                  if (finishReason) pendingFinishReason = finishReason;
-
-                  const wordCount = content.split(/\s+/).filter(Boolean).length;
-                  console.log(
-                    `  [${eventCount}] @${ts} | +${content.length} chars (${wordCount} word(s)) | buf: ${contentBuf.length}${finishReason ? ` | finish_reason: ${finishReason}` : ""}`
-                  );
-
-                  if (shouldFlush(contentBuf) || finishReason) {
-                    flushContent();
-                  }
-                }
-
-                if (!content && !reasoning) {
-                  emitSSE(raw);
-                }
-              } catch {
-                console.log(
-                  `  [${eventCount}] (non-JSON: ${raw.slice(0, 80)})`
-                );
+            if (!delta) {
+              if (json.id || json.model || json.object) {
                 emitSSE(raw);
               }
+              continue;
+            }
+
+            const content = delta.content || "";
+            const reasoning = delta.reasoning_content || "";
+            const finishReason = choice?.finish_reason || null;
+            const ts = Date.now();
+
+            if (reasoning) {
+              reasoningBuf += reasoning;
+              console.log(
+                `  [${eventCount}] @${ts} | +${reasoning.length} chars | buf: ${reasoningBuf.length} [REASONING]`
+              );
+              if (shouldFlush(reasoningBuf)) {
+                flushReasoning();
+              }
+            }
+
+            if (content) {
+              contentBuf += content;
+              if (finishReason) pendingFinishReason = finishReason;
+
+              const wordCount = content.split(/\s+/).filter(Boolean).length;
+              console.log(
+                `  [${eventCount}] @${ts} | +${content.length} chars (${wordCount} word(s)) | buf: ${contentBuf.length}${finishReason ? ` | finish_reason: ${finishReason}` : ""}`
+              );
+
+              if (shouldFlush(contentBuf) || finishReason) {
+                flushContent();
+              }
+            }
+
+            if (!content && !reasoning && !delta.tool_calls && !delta.function_call) {
+              emitSSE(raw);
             }
           }
         }
 
         flushAll();
-        console.log(
-          `\n─── Stream complete: ${eventCount} raw events ───`
-        );
+        console.log(`\n─── Stream complete: ${eventCount} raw events ───`);
         controller.close();
       },
     });
 
+    const responseHeaders = new Headers({
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+    });
+
     return new Response(transform, {
       status: res.status,
-      headers: res.headers,
+      headers: responseHeaders,
     });
   },
 });
