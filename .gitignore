@@ -10,8 +10,8 @@ node_modules/
 Thumbs.db
 
 # Secrets (never commit)
-*.env
-*.env.local
+.env*
+.env.*
 secrets.json
 
 # Logs
@@ -19,6 +19,13 @@ secrets.json
 
 # Build
 dist/
+build/
+*.tsbuildinfo
 
 # Session artifacts
 .sisyphus/
+
+# Editor temp files
+*.swp
+*.swo
+*~

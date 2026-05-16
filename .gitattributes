@@ -1,0 +1,33 @@
+# Auto-detect text files and normalize line endings
+* text=auto
+
+# Source code
+*.ts text diff=typescript
+*.tsx text diff=typescript
+*.js text diff=javascript
+*.jsx text diff=javascript
+*.json text diff=json
+*.md text diff=markdown
+*.css text diff=css
+*.html text diff=html
+*.svg text diff=xml
+*.yml text diff=yaml
+*.yaml text diff=yaml
+
+# Lock files — treat as binary to avoid merge conflicts
+bun.lock binary
+package-lock.json binary
+yarn.lock binary
+pnpm-lock.yaml binary
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+
+# Git archives
+/.gitattributes export-ignore
+/.gitignore export-ignore
