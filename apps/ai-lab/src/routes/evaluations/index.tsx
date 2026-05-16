@@ -1,12 +1,18 @@
 import { component$ } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
+import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
+import { Badge } from "~/components/ui/badge";
+import { Progress } from "~/components/ui/progress";
 
 export default component$(() => {
   const evaluations = [
-    { id: 1, name: "MMLU Benchmark", type: "benchmark", passed: 85, total: 100 },
-    { id: 2, name: "HumanEval", type: "code", passed: 42, total: 50 },
-    { id: 3, name: "TruthfulQA", type: "safety", passed: 78, total: 100 },
-    { id: 4, name: "GSM8K", type: "math", passed: 92, total: 100 },
+    { id: 1, name: "MMLU Benchmark", type: "benchmark", passed: 85, total: 100, category: "Knowledge" },
+    { id: 2, name: "HumanEval", type: "code", passed: 42, total: 50, category: "Coding" },
+    { id: 3, name: "TruthfulQA", type: "safety", passed: 78, total: 100, category: "Safety" },
+    { id: 4, name: "GSM8K", type: "math", passed: 92, total: 100, category: "Reasoning" },
+    { id: 5, name: "HellaSwag", type: "benchmark", passed: 88, total: 100, category: "Reasoning" },
+    { id: 6, name: "WinoGrande", type: "benchmark", passed: 75, total: 100, category: "Reasoning" },
   ];
 
   const typeColors: Record<string, string> = {
@@ -17,47 +23,48 @@ export default component$(() => {
   };
 
   return (
-    <div>
-      <header class="mb-8 flex items-center justify-between">
+    <div class="space-y-8">
+      <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold">Evaluations</h1>
-          <p class="mt-2 text-text-muted">Model evaluation results and benchmarks</p>
+          <h1 class="text-3xl font-bold tracking-tight">Evaluations</h1>
+          <p class="text-text-muted">Model evaluation results and benchmarks</p>
         </div>
-        <button class="rounded-lg bg-primary px-4 py-2 text-white transition-colors hover:bg-primary-dark">
-          Run Evaluation
-        </button>
-      </header>
+        <Button>Run Evaluation</Button>
+      </div>
 
-      <div class="grid grid-cols-2 gap-6">
-        {evaluations.map((eval_) => (
-          <div
-            key={eval_.id}
-            class="rounded-xl border border-surface-light bg-surface p-6"
-          >
-            <div class="mb-4 flex items-start justify-between">
-              <div>
-                <h3 class="font-semibold">{eval_.name}</h3>
-                <span
-                  class={`mt-1 inline-block rounded px-2 py-1 text-xs ${typeColors[eval_.type]}`}
-                >
-                  {eval_.type}
-                </span>
-              </div>
-              <span class="text-2xl font-bold">
-                {Math.round((eval_.passed / eval_.total) * 100)}%
-              </span>
-            </div>
-            <div class="h-2 w-full rounded-full bg-surface-light">
-              <div
-                class="h-2 rounded-full bg-primary"
-                style={`width: ${(eval_.passed / eval_.total) * 100}%`}
-              />
-            </div>
-            <p class="mt-2 text-sm text-text-muted">
-              {eval_.passed} / {eval_.total} passed
-            </p>
-          </div>
-        ))}
+      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {evaluations.map((eval_) => {
+          const percentage = Math.round((eval_.passed / eval_.total) * 100);
+          return (
+            <Card key={eval_.id}>
+              <CardHeader>
+                <div class="flex items-start justify-between">
+                  <div class="flex flex-col gap-2">
+                    <CardTitle>{eval_.name}</CardTitle>
+                    <div class="flex items-center gap-2">
+                      <Badge variant="outline">{eval_.category}</Badge>
+                      <span class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${typeColors[eval_.type]}`}>
+                        {eval_.type}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <span class="text-2xl font-bold">{percentage}%</span>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div class="space-y-2">
+                  <Progress value={percentage} />
+                  <div class="flex justify-between text-sm text-text-muted">
+                    <span>{eval_.passed} passed</span>
+                    <span>{eval_.total} total</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

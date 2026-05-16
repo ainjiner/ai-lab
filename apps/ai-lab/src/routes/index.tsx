@@ -1,5 +1,7 @@
 import { component$ } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
+import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
 
 export default component$(() => {
   const stats = [
@@ -9,53 +11,66 @@ export default component$(() => {
     { label: "Tokens Used", value: "1.2M", color: "text-error" },
   ];
 
+  const activities = [
+    { text: "Model scan completed", time: "2m ago" },
+    { text: "Experiment #42 finished", time: "15m ago" },
+    { text: "New model added", time: "1h ago" },
+    { text: "Evaluation passed", time: "2h ago" },
+  ];
+
   return (
-    <div>
-      <header class="mb-8">
-        <h1 class="text-3xl font-bold">Dashboard</h1>
-        <p class="mt-2 text-text-muted">
+    <div class="space-y-8">
+      <div>
+        <h1 class="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p class="text-text-muted">
           ML/LLM Engineering Research Dashboard
         </p>
-      </header>
+      </div>
 
-      <div class="mb-8 grid grid-cols-4 gap-6">
+      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <div
-            key={stat.label}
-            class="rounded-xl border border-surface-light bg-surface p-6"
-          >
-            <p class="text-sm text-text-muted">{stat.label}</p>
-            <p class={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
-          </div>
+          <Card key={stat.label}>
+            <CardContent>
+              <div class="flex flex-col space-y-1">
+                <span class="text-sm font-medium text-text-muted">{stat.label}</span>
+                <span class={`text-3xl font-bold tabular-nums ${stat.color}`}>
+                  {stat.value}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      <div class="grid grid-cols-2 gap-6">
-        <div class="rounded-xl border border-surface-light bg-surface p-6">
-          <h2 class="mb-4 text-xl font-semibold">Quick Actions</h2>
-          <div class="space-y-3">
-            <button class="w-full rounded-lg bg-primary px-4 py-2 text-white transition-colors hover:bg-primary-dark">
-              Scan Models
-            </button>
-            <button class="w-full rounded-lg bg-surface-light px-4 py-2 text-text transition-colors hover:bg-surface">
-              New Experiment
-            </button>
-          </div>
-        </div>
+      <div class="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="flex flex-col space-y-2">
+              <Button class="w-full">Scan Models</Button>
+              <Button variant="secondary" class="w-full">New Experiment</Button>
+              <Button variant="outline" class="w-full">Run Evaluation</Button>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div class="rounded-xl border border-surface-light bg-surface p-6">
-          <h2 class="mb-4 text-xl font-semibold">Recent Activity</h2>
-          <div class="space-y-3 text-sm">
-            <div class="flex justify-between">
-              <span>Model scan completed</span>
-              <span class="text-text-muted">2m ago</span>
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="space-y-4">
+              {activities.map((activity) => (
+                <div key={activity.text} class="flex items-center justify-between">
+                  <span class="text-sm">{activity.text}</span>
+                  <span class="text-xs text-text-muted">{activity.time}</span>
+                </div>
+              ))}
             </div>
-            <div class="flex justify-between">
-              <span>Experiment #42 finished</span>
-              <span class="text-text-muted">15m ago</span>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
