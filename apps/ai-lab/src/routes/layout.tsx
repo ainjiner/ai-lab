@@ -2,7 +2,7 @@ import { component$, Slot } from '@builder.io/qwik';
 import { Link, useLocation } from '@builder.io/qwik-city';
 
 export default component$(() => {
-  const { url } = useLocation();
+  const loc = useLocation();
   
   const navItems = [
     { href: '/', label: 'Dashboard' },
@@ -28,7 +28,7 @@ export default component$(() => {
                 <Link 
                   href={item.href}
                   class={`block px-4 py-2 rounded-lg transition-colors ${
-                    url.pathname === item.href 
+                    loc.url.pathname === item.href 
                       ? 'bg-primary text-white' 
                       : 'text-text-muted hover:bg-surface-light'
                   }`}
@@ -41,10 +41,7 @@ export default component$(() => {
         </nav>
         
         <div class="p-4 border-t border-surface-light">
-          <div class="text-xs text-text-muted">
-            <p>Powered by</p>
-            <p class="text-text">Qwik + Baseten</p>
-          </div>
+          <p class="text-xs text-text-muted">Powered by Qwik + Baseten</p>
         </div>
       </aside>
       

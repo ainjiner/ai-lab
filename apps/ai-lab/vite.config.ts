@@ -7,14 +7,12 @@ export default defineConfig(() => {
   return {
     plugins: [
       qwikCity(),
-      qwikVite(),
+      qwikVite({
+        ssr: { input: 'src/entry.ssr.tsx' },
+      }),
       tailwindcss(),
     ],
-    server: {
-      port: 3000,
-    },
-    build: {
-      target: 'es2022',
-    },
+    server: { port: 3000 },
+    build: { target: 'es2022' },
   };
 });

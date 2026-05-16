@@ -1,23 +1,11 @@
 import { component$ } from '@builder.io/qwik';
-import { routeLoader$ } from '@builder.io/qwik-city';
-
-export const useDashboardStats = routeLoader$(async () => {
-  return {
-    models: 12,
-    experiments: 8,
-    evaluations: 24,
-    tokens: '1.2M',
-  };
-});
 
 export default component$(() => {
-  const stats = useDashboardStats();
-  
-  const cards = [
-    { label: 'Available Models', value: stats.value.models, color: 'text-primary' },
-    { label: 'Active Experiments', value: stats.value.experiments, color: 'text-success' },
-    { label: 'Evaluations', value: stats.value.evaluations, color: 'text-warning' },
-    { label: 'Tokens Used', value: stats.value.tokens, color: 'text-error' },
+  const stats = [
+    { label: 'Available Models', value: 12, color: 'text-primary' },
+    { label: 'Active Experiments', value: 8, color: 'text-success' },
+    { label: 'Evaluations', value: 24, color: 'text-warning' },
+    { label: 'Tokens Used', value: '1.2M', color: 'text-error' },
   ];
 
   return (
@@ -28,10 +16,10 @@ export default component$(() => {
       </header>
       
       <div class="grid grid-cols-4 gap-6 mb-8">
-        {cards.map((card) => (
-          <div key={card.label} class="bg-surface rounded-xl p-6 border border-surface-light">
-            <p class="text-text-muted text-sm">{card.label}</p>
-            <p class={`text-3xl font-bold ${card.color}`}>{card.value}</p>
+        {stats.map((stat) => (
+          <div key={stat.label} class="bg-surface rounded-xl p-6 border border-surface-light">
+            <p class="text-text-muted text-sm">{stat.label}</p>
+            <p class={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
           </div>
         ))}
       </div>
@@ -46,9 +34,6 @@ export default component$(() => {
             <button class="bg-surface-light text-text px-4 py-2 rounded-lg w-full hover:bg-surface transition-colors">
               New Experiment
             </button>
-            <button class="bg-surface-light text-text px-4 py-2 rounded-lg w-full hover:bg-surface transition-colors">
-              Run Evaluation
-            </button>
           </div>
         </div>
         
@@ -62,10 +47,6 @@ export default component$(() => {
             <div class="flex justify-between">
               <span>Experiment #42 finished</span>
               <span class="text-text-muted">15m ago</span>
-            </div>
-            <div class="flex justify-between">
-              <span>New model added</span>
-              <span class="text-text-muted">1h ago</span>
             </div>
           </div>
         </div>

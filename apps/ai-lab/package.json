@@ -4,26 +4,17 @@
   "description": "AI Lab - Web UI for ML/LLM Engineering Research",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "qwik build",
-    "build.client": "vite build",
-    "build.server": "vite build -c adapters/cloudflare-pages/vite.config.ts",
-    "preview": "vite preview",
-    "start": "vite",
-    "qwik": "qwik"
+    "dev": "vite --mode ssr",
+    "build": "vite build && vite build -c adapters/cloudflare-pages/vite.config.ts",
+    "preview": "vite preview"
   },
   "devDependencies": {
-    "@builder.io/qwik": "^1.19.2",
-    "@builder.io/qwik-city": "^1.19.2",
-    "@tailwindcss/vite": "^4.3.0",
-    "@types/node": "^20.0.0",
-    "tailwindcss": "^4.3.0",
+    "@builder.io/qwik": "^1.9.0",
+    "@builder.io/qwik-city": "^1.9.0",
+    "@tailwindcss/vite": "^4.0.0",
+    "tailwindcss": "^4.0.0",
     "typescript": "^5.0.0",
-    "undici": "^6.0.0",
     "vite": "^5.0.0"
-  },
-  "dependencies": {
-    "@ai-lab/openai-compatible": "workspace:*"
   },
   "engines": {
     "node": ">=18"

@@ -1,4 +1,4 @@
 import { render } from '@builder.io/qwik';
-import { Root } from './root';
+import { App } from './app';
 
-export default render(document.getElementById('root') as HTMLElement, <Root />);
+export default render(document.getElementById('app') as HTMLElement, <App />);
