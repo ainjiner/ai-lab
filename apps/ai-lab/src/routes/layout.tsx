@@ -1,5 +1,6 @@
 import { component$, Slot } from "@builder.io/qwik";
 import { Link, useLocation } from "@builder.io/qwik-city";
+import { Logo } from "~/components/logo/Logo";
 
 export default component$(() => {
   const loc = useLocation();
@@ -44,9 +45,8 @@ export default component$(() => {
   return (
     <div class="flex min-h-screen">
       <aside class="flex w-64 flex-col border-r border-surface-light bg-surface">
-        <div class="border-b border-surface-light p-6">
-          <h1 class="text-xl font-bold text-primary">AI Lab</h1>
-          <p class="text-sm text-text-muted">ML/LLM Engineering</p>
+        <div class="border-b border-surface-light px-4 py-5">
+          <Logo size={28} showTagline />
         </div>
 
         <nav class="flex-1 overflow-y-auto p-4">
