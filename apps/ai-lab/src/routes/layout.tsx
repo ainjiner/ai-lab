@@ -4,13 +4,38 @@ import { Link, useLocation } from "@builder.io/qwik-city";
 export default component$(() => {
   const loc = useLocation();
 
-  const navItems = [
-    { href: "/", label: "Dashboard" },
-    { href: "/models", label: "Models" },
-    { href: "/tokens", label: "Tokens" },
-    { href: "/experiments", label: "Experiments" },
-    { href: "/evaluations", label: "Evaluations" },
-    { href: "/integrations", label: "Integrations" },
+  const navSections = [
+    {
+      title: "Overview",
+      items: [
+        { href: "/", label: "Dashboard", icon: "📊" },
+        { href: "/models", label: "Models", icon: "🤖" },
+      ],
+    },
+    {
+      title: "Research",
+      items: [
+        { href: "/prompts", label: "Prompts", icon: "✏️" },
+        { href: "/experiments", label: "Experiments", icon: "🔬" },
+        { href: "/evaluations", label: "Evaluations", icon: "📈" },
+        { href: "/compare", label: "Compare", icon: "⚖️" },
+      ],
+    },
+    {
+      title: "Monitoring",
+      items: [
+        { href: "/tokens", label: "Tokens", icon: "🔢" },
+        { href: "/cost", label: "Cost", icon: "💰" },
+        { href: "/tracing", label: "Tracing", icon: "🔍" },
+      ],
+    },
+    {
+      title: "Settings",
+      items: [
+        { href: "/integrations", label: "Integrations", icon: "🔌" },
+        { href: "/settings", label: "Settings", icon: "⚙️" },
+      ],
+    },
   ];
 
   return (
@@ -21,23 +46,31 @@ export default component$(() => {
           <p class="text-sm text-text-muted">ML/LLM Engineering</p>
         </div>
 
-        <nav class="flex-1 p-4">
-          <ul class="space-y-1">
-            {navItems.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  class={`block rounded-lg px-4 py-2 transition-colors ${
-                    loc.url.pathname === item.href
-                      ? "bg-primary text-white"
-                      : "text-text-muted hover:bg-surface-light"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
+        <nav class="flex-1 overflow-y-auto p-4">
+          {navSections.map((section) => (
+            <div key={section.title} class="mb-4">
+              <p class="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-text-muted">
+                {section.title}
+              </p>
+              <ul class="space-y-1">
+                {section.items.map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      class={`flex items-center gap-3 rounded-lg px-4 py-2 transition-colors ${
+                        loc.url.pathname === item.href
+                          ? "bg-primary text-white"
+                          : "text-text-muted hover:bg-surface-light"
+                      }`}
+                    >
+                      <span>{item.icon}</span>
+                      <span>{item.label}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </nav>
 
         <div class="border-t border-surface-light p-4">
@@ -45,7 +78,7 @@ export default component$(() => {
         </div>
       </aside>
 
-      <main class="flex-1 p-8">
+      <main class="flex-1 overflow-y-auto p-8">
         <Slot />
       </main>
     </div>

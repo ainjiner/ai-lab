@@ -13,11 +13,14 @@ import type { Server } from "bun";
 const BASETEN_ORIGIN = "https://inference.baseten.co";
 const PORT = 8899;
 const BUFFER_THRESHOLD = 80;
+const REASONING_BUFFER_THRESHOLD = 40;
 const FLUSH_AT_SENTENCE = true;
+const FLUSH_INTERVAL_MS = 500;
 
 const server = Bun.serve({
   port: PORT,
-  async fetch(req) {
+  idleTimeout: 255, // Max allowed by Bun (still need per-request timeout for SSE)
+  async fetch(req, srv) {
     const url = new URL(req.url);
     const target = new URL(url.pathname + url.search, BASETEN_ORIGIN);
 
@@ -40,6 +43,11 @@ const server = Bun.serve({
       console.log(`  → ${res.status} ${text.length} bytes`);
       return res;
     }
+
+    // CRITICAL: Disable idle timeout for SSE streams
+    // Bun closes idle connections after 10s by default
+    // This prevents disconnection during long LLM reasoning pauses
+    srv.timeout(req, 0);
 
     const res = await fetch(target.href, {
       method: req.method,
@@ -76,9 +84,21 @@ const server = Bun.serve({
           }
         }
 
-        function shouldFlush(text: string): boolean {
-          if (text.length >= BUFFER_THRESHOLD) return true;
+        function shouldFlush(text: string, isReasoning: boolean = false): boolean {
+          const threshold = isReasoning ? REASONING_BUFFER_THRESHOLD : BUFFER_THRESHOLD;
+          if (text.length >= threshold) return true;
           if (FLUSH_AT_SENTENCE && /[.!?]\s*$/.test(text) && text.length > 20) return true;
+          return false;
+        }
+
+        let lastFlushTime = Date.now();
+
+        function shouldTimeFlush(): boolean {
+          const now = Date.now();
+          if (now - lastFlushTime >= FLUSH_INTERVAL_MS) {
+            lastFlushTime = now;
+            return true;
+          }
           return false;
         }
 
@@ -190,7 +210,7 @@ const server = Bun.serve({
             console.log(
               `  [${eventCount}] @${ts} | +${reasoning.length} chars | buf: ${reasoningBuf.length} [REASONING]`
             );
-            if (shouldFlush(reasoningBuf)) {
+            if (shouldFlush(reasoningBuf, true) || shouldTimeFlush()) {
               if (!flushReasoning()) return false;
             }
           }
@@ -204,7 +224,7 @@ const server = Bun.serve({
               `  [${eventCount}] @${ts} | +${content.length} chars (${wordCount} word(s)) | buf: ${contentBuf.length}${finishReason ? ` | finish_reason: ${finishReason}` : ""}`
             );
 
-            if (shouldFlush(contentBuf) || finishReason) {
+            if (shouldFlush(contentBuf) || finishReason || shouldTimeFlush()) {
               if (!flushContent()) return false;
             }
           }
