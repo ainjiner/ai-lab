@@ -58,16 +58,21 @@ const server = Bun.serve({
     let contentBuf = "";
     let reasoningBuf = "";
     let eventCount = 0;
+    let isClosed = false;
 
     const transform = new ReadableStream({
       async start(controller) {
         const enc = new TextEncoder();
 
-        function emitSSE(data: string) {
+        function emitSSE(data: string): boolean {
+          if (isClosed) return false;
           try {
             controller.enqueue(enc.encode(`data: ${data}\n\n`));
+            return true;
           } catch (e) {
             console.error(`  [error] Failed to emit SSE: ${e}`);
+            isClosed = true;
+            return false;
           }
         }
 
@@ -79,8 +84,8 @@ const server = Bun.serve({
 
         let pendingFinishReason: string | null = null;
 
-        function flushContent() {
-          if (!contentBuf) return;
+        function flushContent(): boolean {
+          if (!contentBuf) return true;
           const choice: Record<string, unknown> = {
             index: 0,
             delta: { content: contentBuf },
@@ -90,32 +95,39 @@ const server = Bun.serve({
             pendingFinishReason = null;
           }
           const payload = JSON.stringify({ choices: [choice] });
-          emitSSE(payload);
-          console.log(
-            `  [buf] CONTENT: ${contentBuf.length} chars | ${
-              contentBuf.split(/\s+/).filter(Boolean).length
-            } words${choice.finish_reason ? ` | finish_reason: ${choice.finish_reason}` : ""}`
-          );
-          contentBuf = "";
+          const success = emitSSE(payload);
+          if (success) {
+            console.log(
+              `  [buf] CONTENT: ${contentBuf.length} chars | ${
+                contentBuf.split(/\s+/).filter(Boolean).length
+              } words${choice.finish_reason ? ` | finish_reason: ${choice.finish_reason}` : ""}`
+            );
+            contentBuf = "";
+          }
+          return success;
         }
 
-        function flushReasoning() {
-          if (!reasoningBuf) return;
+        function flushReasoning(): boolean {
+          if (!reasoningBuf) return true;
           const payload = JSON.stringify({
             choices: [{ delta: { reasoning_content: reasoningBuf } }],
           });
-          emitSSE(payload);
-          console.log(
-            `  [buf] REASONING: ${reasoningBuf.length} chars | ${
-              reasoningBuf.split(/\s+/).filter(Boolean).length
-            } words`
-          );
-          reasoningBuf = "";
+          const success = emitSSE(payload);
+          if (success) {
+            console.log(
+              `  [buf] REASONING: ${reasoningBuf.length} chars | ${
+                reasoningBuf.split(/\s+/).filter(Boolean).length
+              } words`
+            );
+            reasoningBuf = "";
+          }
+          return success;
         }
 
-        function flushAll() {
-          flushReasoning();
-          flushContent();
+        function flushAll(): boolean {
+          const r1 = flushReasoning();
+          const r2 = flushContent();
+          return r1 && r2;
         }
 
         function safeParseJSON(raw: string): Record<string, unknown> | null {
@@ -126,90 +138,128 @@ const server = Bun.serve({
           }
         }
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        function processLine(line: string): boolean {
+          const trimmedLine = line.trim();
+          
+          if (!trimmedLine) return true;
+          
+          if (trimmedLine.startsWith("event: ") || 
+              trimmedLine.startsWith("id: ") || 
+              trimmedLine.startsWith("retry: ")) {
+            return true;
+          }
+          
+          if (!trimmedLine.startsWith("data: ")) {
+            return true;
+          }
 
-          const chunk = decoder.decode(value, { stream: true });
-          buf += chunk;
+          const raw = trimmedLine.slice(6);
+          eventCount++;
 
-          const lines = buf.split("\n");
-          buf = lines.pop() || "";
+          if (raw === "[DONE]") {
+            flushAll();
+            emitSSE("[DONE]");
+            console.log(`  [${eventCount}] [DONE]`);
+            return true;
+          }
 
-          for (const line of lines) {
-            const trimmedLine = line.trim();
-            
-            if (!trimmedLine) continue;
-            
-            if (!trimmedLine.startsWith("data: ")) {
-              continue;
-            }
+          const json = safeParseJSON(raw);
+          
+          if (!json) {
+            console.log(`  [${eventCount}] (invalid JSON, skipping): ${raw.slice(0, 60)}...`);
+            return true;
+          }
 
-            const raw = trimmedLine.slice(6);
-            eventCount++;
+          const choice = json.choices?.[0];
+          const delta = choice?.delta;
 
-            if (raw === "[DONE]") {
-              flushAll();
-              emitSSE("[DONE]");
-              console.log(`  [${eventCount}] [DONE]`);
-              continue;
-            }
-
-            const json = safeParseJSON(raw);
-            
-            if (!json) {
-              console.log(`  [${eventCount}] (invalid JSON, skipping): ${raw.slice(0, 60)}...`);
-              continue;
-            }
-
-            const choice = json.choices?.[0];
-            const delta = choice?.delta;
-
-            if (!delta) {
-              if (json.id || json.model || json.object) {
-                emitSSE(raw);
-              }
-              continue;
-            }
-
-            const content = delta.content || "";
-            const reasoning = delta.reasoning_content || "";
-            const finishReason = choice?.finish_reason || null;
-            const ts = Date.now();
-
-            if (reasoning) {
-              reasoningBuf += reasoning;
-              console.log(
-                `  [${eventCount}] @${ts} | +${reasoning.length} chars | buf: ${reasoningBuf.length} [REASONING]`
-              );
-              if (shouldFlush(reasoningBuf)) {
-                flushReasoning();
-              }
-            }
-
-            if (content) {
-              contentBuf += content;
-              if (finishReason) pendingFinishReason = finishReason;
-
-              const wordCount = content.split(/\s+/).filter(Boolean).length;
-              console.log(
-                `  [${eventCount}] @${ts} | +${content.length} chars (${wordCount} word(s)) | buf: ${contentBuf.length}${finishReason ? ` | finish_reason: ${finishReason}` : ""}`
-              );
-
-              if (shouldFlush(contentBuf) || finishReason) {
-                flushContent();
-              }
-            }
-
-            if (!content && !reasoning && !delta.tool_calls && !delta.function_call) {
+          if (!delta) {
+            if (json.id || json.model || json.object) {
               emitSSE(raw);
             }
+            return true;
           }
+
+          const content = delta.content || "";
+          const reasoning = delta.reasoning_content || "";
+          const finishReason = choice?.finish_reason || null;
+          const ts = Date.now();
+
+          if (reasoning) {
+            reasoningBuf += reasoning;
+            console.log(
+              `  [${eventCount}] @${ts} | +${reasoning.length} chars | buf: ${reasoningBuf.length} [REASONING]`
+            );
+            if (shouldFlush(reasoningBuf)) {
+              if (!flushReasoning()) return false;
+            }
+          }
+
+          if (content) {
+            contentBuf += content;
+            if (finishReason) pendingFinishReason = finishReason;
+
+            const wordCount = content.split(/\s+/).filter(Boolean).length;
+            console.log(
+              `  [${eventCount}] @${ts} | +${content.length} chars (${wordCount} word(s)) | buf: ${contentBuf.length}${finishReason ? ` | finish_reason: ${finishReason}` : ""}`
+            );
+
+            if (shouldFlush(contentBuf) || finishReason) {
+              if (!flushContent()) return false;
+            }
+          }
+
+          if (!content && !reasoning && !delta.tool_calls && !delta.function_call) {
+            emitSSE(raw);
+          }
+          
+          return true;
         }
 
-        flushAll();
-        console.log(`\n─── Stream complete: ${eventCount} raw events ───`);
-        controller.close();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            
+            if (done) {
+              if (buf.length > 0) {
+                console.log(`  [final] Processing remaining buffer: ${buf.length} chars`);
+                processLine(buf);
+              }
+              break;
+            }
+
+            const chunk = decoder.decode(value, { stream: true });
+            buf += chunk;
+
+            const lines = buf.split("\n");
+            buf = lines.pop() || "";
+
+            for (const line of lines) {
+              if (!processLine(line)) {
+                console.log(`  [warn] Process line failed, stopping`);
+                break;
+              }
+            }
+          }
+
+          flushAll();
+          console.log(`\n─── Stream complete: ${eventCount} raw events ───`);
+          
+        } catch (error) {
+          console.error(`  [error] Stream error: ${error}`);
+          flushAll();
+        } finally {
+          try {
+            reader.cancel();
+          } catch {}
+          
+          if (!isClosed) {
+            try {
+              controller.close();
+            } catch {}
+          }
+          isClosed = true;
+        }
       },
     });
 
@@ -217,6 +267,7 @@ const server = Bun.serve({
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       "Connection": "keep-alive",
+      "X-Accel-Buffering": "no",
     });
 
     return new Response(transform, {
