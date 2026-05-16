@@ -1,119 +1,20 @@
-:root {
-  --primary: #6366f1;
-  --primary-dark: #4f46e5;
-  --background: #0f172a;
-  --surface: #1e293b;
-  --surface-light: #334155;
-  --text: #f8fafc;
-  --text-muted: #94a3b8;
-  --success: #22c55e;
-  --warning: #eab308;
-  --error: #ef4444;
-}
+@import "tailwindcss";
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+@theme {
+  --color-primary: #6366f1;
+  --color-primary-dark: #4f46e5;
+  --color-background: #0f172a;
+  --color-surface: #1e293b;
+  --color-surface-light: #334155;
+  --color-text: #f8fafc;
+  --color-text-muted: #94a3b8;
+  --color-success: #22c55e;
+  --color-warning: #eab308;
+  --color-error: #ef4444;
 }
 
 html {
   font-family: system-ui, -apple-system, sans-serif;
-  background: var(--background);
-  color: var(--text);
-}
-
-body {
-  min-height: 100vh;
-}
-
-a {
-  color: var(--primary);
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-.card {
-  background: var(--surface);
-  border-radius: 12px;
-  padding: 1.5rem;
-  border: 1px solid var(--surface-light);
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-primary {
-  background: var(--primary);
-  color: white;
-}
-
-.btn-primary:hover {
-  background: var(--primary-dark);
-}
-
-.btn-secondary {
-  background: var(--surface-light);
-  color: var(--text);
-}
-
-.btn-secondary:hover {
-  background: var(--surface);
-}
-
-.input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  border: 1px solid var(--surface-light);
-  background: var(--surface);
-  color: var(--text);
-  font-size: 1rem;
-}
-
-.input:focus {
-  outline: none;
-  border-color: var(--primary);
-}
-
-.grid {
-  display: grid;
-  gap: 1.5rem;
-}
-
-.grid-cols-2 {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-.grid-cols-3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.grid-cols-4 {
-  grid-template-columns: repeat(4, 1fr);
-}
-
-@media (max-width: 1024px) {
-  .grid-cols-4 {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 640px) {
-  .grid-cols-2,
-  .grid-cols-3,
-  .grid-cols-4 {
-    grid-template-columns: 1fr;
-  }
+  background: var(--color-background);
+  color: var(--color-text);
 }

@@ -1,9 +1,8 @@
 import { component$, Slot } from '@builder.io/qwik';
-import { Link, useContent, useLocation } from '@builder.io/qwik-city';
+import { Link, useLocation } from '@builder.io/qwik-city';
 
 export default component$(() => {
   const { url } = useLocation();
-  const content = useContent();
   
   const navItems = [
     { href: '/', label: 'Dashboard' },

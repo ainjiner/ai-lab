@@ -27,12 +27,14 @@ export default component$(() => {
           <h1 class="text-3xl font-bold">Evaluations</h1>
           <p class="text-text-muted mt-2">Model evaluation results and benchmarks</p>
         </div>
-        <button class="btn btn-primary">Run Evaluation</button>
+        <button class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors">
+          Run Evaluation
+        </button>
       </header>
       
       <div class="grid grid-cols-2 gap-6">
         {evaluations.value.map((eval_) => (
-          <div key={eval_.id} class="card">
+          <div key={eval_.id} class="bg-surface rounded-xl p-6 border border-surface-light">
             <div class="flex justify-between items-start mb-4">
               <div>
                 <h3 class="font-semibold">{eval_.name}</h3>

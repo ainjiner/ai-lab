@@ -26,12 +26,14 @@ export default component$(() => {
           <h1 class="text-3xl font-bold">Experiments</h1>
           <p class="text-text-muted mt-2">Track and manage ML experiments</p>
         </div>
-        <button class="btn btn-primary">New Experiment</button>
+        <button class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors">
+          New Experiment
+        </button>
       </header>
       
       <div class="grid gap-4">
         {experiments.value.map((exp) => (
-          <div key={exp.id} class="card flex justify-between items-center">
+          <div key={exp.id} class="bg-surface rounded-xl p-6 border border-surface-light flex justify-between items-center">
             <div>
               <h3 class="font-semibold">{exp.name}</h3>
               <p class="text-sm text-text-muted">{exp.model}</p>
@@ -43,7 +45,9 @@ export default component$(() => {
               {exp.score !== null && (
                 <span class="text-sm font-medium">Score: {exp.score}</span>
               )}
-              <button class="btn btn-secondary text-sm">View</button>
+              <button class="bg-surface-light text-text px-4 py-2 rounded-lg text-sm hover:bg-surface transition-colors">
+                View
+              </button>
             </div>
           </div>
         ))}

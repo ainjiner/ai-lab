@@ -33,17 +33,17 @@ export default component$(() => {
       </header>
       
       <div class="grid grid-cols-2 gap-6 mb-8">
-        <div class="card text-center">
+        <div class="bg-surface rounded-xl p-6 border border-surface-light text-center">
           <p class="text-text-muted">Total Tokens</p>
           <p class="text-4xl font-bold text-primary">{stats.value.total}</p>
         </div>
-        <div class="card text-center">
+        <div class="bg-surface rounded-xl p-6 border border-surface-light text-center">
           <p class="text-text-muted">Total Cost</p>
           <p class="text-4xl font-bold text-success">{stats.value.cost}</p>
         </div>
       </div>
       
-      <div class="card mb-6">
+      <div class="bg-surface rounded-xl p-6 border border-surface-light mb-6">
         <h2 class="text-xl font-semibold mb-4">Usage by Model</h2>
         <div class="space-y-4">
           {stats.value.byModel.map((item) => (
@@ -58,7 +58,7 @@ export default component$(() => {
         </div>
       </div>
       
-      <div class="card">
+      <div class="bg-surface rounded-xl p-6 border border-surface-light">
         <h2 class="text-xl font-semibold mb-4">Daily Usage</h2>
         <div class="flex items-end gap-2 h-40">
           {stats.value.daily.map((day) => {

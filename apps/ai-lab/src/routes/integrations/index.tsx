@@ -65,7 +65,7 @@ export default component$(() => {
       
       <div class="grid grid-cols-3 gap-6">
         {integrations.value.map((integration) => (
-          <div key={integration.id} class="card">
+          <div key={integration.id} class="bg-surface rounded-xl p-6 border border-surface-light">
             <div class="flex items-center gap-3 mb-4">
               <span class="text-3xl">{integration.icon}</span>
               <div>
@@ -76,10 +76,10 @@ export default component$(() => {
               </div>
             </div>
             <p class="text-sm text-text-muted mb-4">{integration.description}</p>
-            <button class={`btn w-full ${
+            <button class={`w-full px-4 py-2 rounded-lg transition-colors ${
               integration.status === 'connected' 
-                ? 'btn-secondary' 
-                : 'btn-primary'
+                ? 'bg-surface-light text-text hover:bg-surface' 
+                : 'bg-primary text-white hover:bg-primary-dark'
             }`}>
               {integration.status === 'connected' ? 'Configure' : 'Connect'}
             </button>

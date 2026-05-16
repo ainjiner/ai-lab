@@ -20,10 +20,12 @@ export default component$(() => {
           <h1 class="text-3xl font-bold">Models</h1>
           <p class="text-text-muted mt-2">Manage and configure LLM models</p>
         </div>
-        <button class="btn btn-primary">Scan Models</button>
+        <button class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors">
+          Scan Models
+        </button>
       </header>
       
-      <div class="card">
+      <div class="bg-surface rounded-xl p-6 border border-surface-light">
         <table class="w-full">
           <thead>
             <tr class="border-b border-surface-light">
@@ -53,7 +55,9 @@ export default component$(() => {
                   </span>
                 </td>
                 <td class="py-3 px-4 text-right">
-                  <button class="btn btn-secondary text-sm">Configure</button>
+                  <button class="bg-surface-light text-text px-4 py-2 rounded-lg text-sm hover:bg-surface transition-colors">
+                    Configure
+                  </button>
                 </td>
               </tr>
             ))}
