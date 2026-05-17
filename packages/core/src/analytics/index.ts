@@ -76,7 +76,8 @@ export class AnalyticsTracker {
       `SELECT provider as name,
         COALESCE(SUM(tokens_prompt + tokens_completion), 0) as tokens,
         COALESCE(SUM(cost_total), 0) as cost,
-        COUNT(*) as requests
+        COUNT(*) as requests,
+        COALESCE(AVG(latency_ms), 0) as avg_latency
        FROM usage_records
        WHERE timestamp >= datetime('now', ?)
        GROUP BY provider ORDER BY cost DESC`
@@ -86,20 +87,41 @@ export class AnalyticsTracker {
       `SELECT model as name,
         COALESCE(SUM(tokens_prompt + tokens_completion), 0) as tokens,
         COALESCE(SUM(cost_total), 0) as cost,
-        COUNT(*) as requests
+        COUNT(*) as requests,
+        COALESCE(AVG(latency_ms), 0) as avg_latency
        FROM usage_records
        WHERE timestamp >= datetime('now', ?)
        GROUP BY model ORDER BY cost DESC`
     ).all(interval);
 
-    return { byProvider, byModel };
+    return {
+      byProvider: byProvider.map((p: any) => ({
+        name: p.name,
+        tokens: p.tokens,
+        cost: p.cost,
+        requests: p.requests,
+        avgLatency: Math.round(p.avg_latency || 0),
+      })),
+      byModel: byModel.map((m: any) => ({
+        name: m.name,
+        tokens: m.tokens,
+        cost: m.cost,
+        requests: m.requests,
+        avgLatency: Math.round(m.avg_latency || 0),
+      })),
+    };
   }
 
   getCostProjection(days: number = 30): { dailyAvg: number; projected: number; currentTotal: number } {
     const current = this.getSummary("monthly");
+    const daysRow = this.store.query<{ days_with_data: number }, []>(
+      `SELECT COUNT(DISTINCT DATE(timestamp)) as days_with_data FROM usage_records WHERE timestamp >= datetime('now', '-30 days')`
+    ).get();
+    const daysWithData = daysRow?.days_with_data || 1;
+    const dailyAvg = current.totalCost / daysWithData;
     return {
-      dailyAvg: current.requestCount > 0 ? current.totalCost / current.requestCount : 0,
-      projected: current.totalCost * (days / 30),
+      dailyAvg,
+      projected: dailyAvg * days,
       currentTotal: current.totalCost,
     };
   }
