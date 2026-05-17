@@ -150,6 +150,15 @@ api.post("/config/targets/:id/toggle", (c) => {
   return c.json({ success: true });
 });
 
+api.post("/config/targets/:id/validate", (c) => {
+  try {
+    const result = configManager.validateTarget(c.req.param("id"));
+    return c.json(result);
+  } catch (err) {
+    return c.json({ error: String(err) }, 400);
+  }
+});
+
 api.post("/config/sync-all", (c) => {
   const results = configManager.syncToAllTargets();
   return c.json({ results });
@@ -209,6 +218,16 @@ api.post("/experiments/:id/result", async (c) => {
   return c.json({ success: true });
 });
 
+api.post("/experiments/:id/rating", async (c) => {
+  const { rating } = await c.req.json<{ rating: number }>();
+  try {
+    experimentTracker.updateRating(c.req.param("id"), rating);
+    return c.json({ success: true });
+  } catch (err) {
+    return c.json({ error: String(err) }, 400);
+  }
+});
+
 api.delete("/experiments/:id", (c) => {
   experimentTracker.delete(c.req.param("id"));
   return c.json({ success: true });
@@ -218,7 +237,31 @@ api.delete("/experiments/:id", (c) => {
 api.get("/analytics/summary", (c) => {
   const period = (c.req.query("period") as "daily" | "weekly" | "monthly") || "monthly";
   const summary = analyticsTracker.getSummary(period);
-  return c.json({ summary });
+  
+  let prevStart = "-60 days";
+  let prevEnd = "-30 days";
+  if (period === "daily") {
+    prevStart = "-2 days";
+    prevEnd = "-1 day";
+  } else if (period === "weekly") {
+    prevStart = "-14 days";
+    prevEnd = "-7 days";
+  }
+
+  let previous = 0;
+  try {
+    const store = (analyticsTracker as any).store;
+    const row = store.query(
+      `SELECT COALESCE(SUM(cost_total), 0) as total_cost
+       FROM usage_records
+       WHERE timestamp >= datetime('now', ?) AND timestamp < datetime('now', ?)`
+    ).get(prevStart, prevEnd);
+    previous = row?.total_cost || 0;
+  } catch (e) {
+    previous = 0;
+  }
+
+  return c.json({ summary, previous });
 });
 
 api.get("/analytics/breakdown", (c) => {
@@ -242,7 +285,14 @@ api.get("/analytics/export", (c) => {
 // Budget routes
 api.get("/budgets", (c) => {
   const budgets = budgetManager.list();
-  return c.json({ budgets });
+  const budgetsWithCurrent = budgets.map((b) => {
+    const summary = analyticsTracker.getSummary(b.period);
+    return {
+      ...b,
+      current: summary.totalCost,
+    };
+  });
+  return c.json({ budgets: budgetsWithCurrent });
 });
 
 api.post("/budgets", async (c) => {
@@ -267,9 +317,108 @@ api.get("/budgets/check", (c) => {
 
 // === Orchestration Routes ===
 api.get("/orchestration", (c) => {
-  const installed = orchestrationManager.detectInstalled();
-  const omo = orchestrationManager.getOmoConfig();
-  return c.json({ installed, omo });
+  const installedList = orchestrationManager.detectInstalled();
+  const omo = installedList.find(i => i.type === "omo");
+  const obra = installedList.find(i => i.type === "obra");
+  
+  const omoConfig = orchestrationManager.getOmoConfig();
+  const obraConfig = orchestrationManager.getObraConfig();
+
+  let active = "omo";
+  try {
+    const store = (configManager as any).store;
+    const row = store.query("SELECT value FROM settings WHERE key = 'active_orchestrator'").get();
+    if (row && row.value) active = row.value;
+  } catch {
+    active = "omo";
+  }
+
+  return c.json({
+    active,
+    omo: {
+      installed: !!omo?.installed,
+      version: omo?.version || "1.0.0",
+      config: omoConfig,
+    },
+    obra: {
+      installed: !!obra?.installed,
+      version: obra?.version || "1.0.0",
+      config: obraConfig,
+    },
+  });
+});
+
+api.get("/orchestration/status", (c) => {
+  const installedList = orchestrationManager.detectInstalled();
+  const omo = installedList.find(i => i.type === "omo");
+  const obra = installedList.find(i => i.type === "obra");
+
+  let active = "omo";
+  try {
+    const store = (configManager as any).store;
+    const row = store.query("SELECT value FROM settings WHERE key = 'active_orchestrator'").get();
+    if (row && row.value) active = row.value;
+  } catch {
+    active = "omo";
+  }
+
+  return c.json({
+    active,
+    omo: {
+      installed: !!omo?.installed,
+      version: omo?.version || "1.0.0",
+    },
+    obra: {
+      installed: !!obra?.installed,
+      version: obra?.version || "1.0.0",
+    },
+  });
+});
+
+api.post("/orchestration/switch", async (c) => {
+  try {
+    const { target, dryRun, backup } = await c.req.json<{
+      target: "omo" | "obra";
+      dryRun?: boolean;
+      backup?: boolean;
+    }>();
+    const result = orchestrationManager.switchOrchestrator(target, { dryRun, backup });
+    return c.json({ success: true, result });
+  } catch (err) {
+    return c.json({ error: String(err) }, 400);
+  }
+});
+
+api.get("/orchestration/backups", (c) => {
+  try {
+    const backups = orchestrationManager.listBackups();
+    return c.json({ backups });
+  } catch (err) {
+    return c.json({ error: String(err) }, 400);
+  }
+});
+
+api.post("/orchestration/restore", async (c) => {
+  try {
+    const { backupPath } = await c.req.json<{ backupPath: string }>();
+    orchestrationManager.restoreConfig(backupPath);
+    return c.json({ success: true });
+  } catch (err) {
+    return c.json({ error: String(err) }, 400);
+  }
+});
+
+api.get("/orchestration/preview/:target", (c) => {
+  try {
+    const target = c.req.param("target") as "omo" | "obra";
+    if (target !== "omo" && target !== "obra") {
+      return c.json({ error: "Invalid target" }, 400);
+    }
+    const result = orchestrationManager.switchOrchestrator(target, { dryRun: true });
+    return c.json({ configs: result.preview });
+  } catch (err) {
+    return c.json({ error: String(err) }, 400);
+  }
 });
 
 api.get("/orchestration/agents", (c) => {
@@ -300,7 +449,20 @@ api.get("/orchestration/skills/:id", (c) => {
 });
 
 // === Health Check ===
-api.get("/health", (c) => c.json({ status: "ok", version: "0.1.0" }));
+api.get("/health", (c) => {
+  const dbPath = join(process.env.HOME!, ".local/share/ml-engine/engine.db");
+  const providersCount = providerRegistry.listInstances().length;
+  const modelsCount = modelCatalog.listModels().length;
+  return c.json({
+    status: "ok",
+    version: "0.1.0",
+    uptime: Math.floor(process.uptime()),
+    db: dbPath,
+    providers: providersCount,
+    models: modelsCount,
+    timestamp: new Date().toISOString()
+  });
+});
 
 // === Export/Import ===
 api.get("/export", (c) => {
