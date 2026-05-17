@@ -59,21 +59,37 @@ export class ExperimentTracker {
     output: string; tokensPrompt: number; tokensCompletion: number;
     latencyMs: number; costUsd: number; reasoning?: string;
   }): void {
+    const nextRunResult = this.store.query<{ run_number: number }, [string]>(
+      "SELECT COALESCE(MAX(run_number), 0) + 1 as run_number FROM experiment_results WHERE experiment_id = ?"
+    ).get(id);
+    const runNumber = nextRunResult?.run_number || 1;
+
+    const resultId = `res_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
     this.store.query<any, any[]>(
-      `UPDATE experiments SET status='completed', output=?, tokens_prompt=?, tokens_completion=?,
-       tokens_total=?, latency_ms=?, cost_usd=?, reasoning=?, updated_at=datetime('now')
-       WHERE id=?`
+      `INSERT INTO experiment_results (id, experiment_id, run_number, output, tokens_prompt, tokens_completion,
+       latency_ms, cost_usd, reasoning, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
     ).run(
-      result.output, result.tokensPrompt, result.tokensCompletion,
-      result.tokensPrompt + result.tokensCompletion, result.latencyMs,
-      result.costUsd, result.reasoning || null, id
+      resultId, id, runNumber, result.output, result.tokensPrompt, result.tokensCompletion,
+      result.latencyMs, result.costUsd, result.reasoning || null
     );
+
+    this.store.query(
+      "UPDATE experiments SET status = 'completed', updated_at = datetime('now') WHERE id = ?"
+    ).run(id);
   }
 
   markFailed(id: string, error: string): void {
     this.store.query(
       "UPDATE experiments SET status='failed', notes=?, updated_at=datetime('now') WHERE id=?"
     ).run(error, id);
+  }
+
+  updateRating(id: string, rating: number): void {
+    this.store.query(
+      "UPDATE experiments SET rating = ?, updated_at = datetime('now') WHERE id = ?"
+    ).run(rating, id);
   }
 
   delete(id: string): void {
@@ -90,6 +106,40 @@ export class ExperimentTracker {
   }
 
   private rowToExperiment(row: any): Experiment {
+    const latestResult = this.store.query<any, [string]>(
+      `SELECT * FROM experiment_results
+       WHERE experiment_id = ?
+       ORDER BY run_number DESC LIMIT 1`
+    ).get(row.id);
+
+    let results = undefined;
+
+    if (latestResult) {
+      results = {
+        output: latestResult.output,
+        tokens: {
+          prompt: latestResult.tokens_prompt || 0,
+          completion: latestResult.tokens_completion || 0,
+          total: (latestResult.tokens_prompt || 0) + (latestResult.tokens_completion || 0),
+        },
+        latency: latestResult.latency_ms,
+        cost: latestResult.cost_usd,
+        reasoning: latestResult.reasoning,
+      };
+    } else if (row.output) {
+      results = {
+        output: row.output,
+        tokens: {
+          prompt: row.tokens_prompt || 0,
+          completion: row.tokens_completion || 0,
+          total: (row.tokens_prompt || 0) + (row.tokens_completion || 0),
+        },
+        latency: row.latency_ms,
+        cost: row.cost_usd,
+        reasoning: row.reasoning,
+      };
+    }
+
     return {
       id: row.id, name: row.name, description: row.description, status: row.status,
       prompt: {
@@ -100,11 +150,7 @@ export class ExperimentTracker {
         provider: row.provider_id, model: row.model_id,
         params: row.params ? JSON.parse(row.params) : {},
       },
-      results: row.output ? {
-        output: row.output,
-        tokens: { prompt: row.tokens_prompt || 0, completion: row.tokens_completion || 0, total: (row.tokens_prompt || 0) + (row.tokens_completion || 0) },
-        latency: row.latency_ms, cost: row.cost_usd, reasoning: row.reasoning,
-      } : undefined,
+      results,
       metadata: {
         createdAt: row.created_at, updatedAt: row.updated_at,
         tags: row.tags ? JSON.parse(row.tags) : [],

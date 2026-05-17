@@ -133,6 +133,11 @@ export class Store {
         updated_at TEXT DEFAULT (datetime('now'))
       );
 
+      INSERT OR IGNORE INTO settings (key, value) VALUES ('target.opencode.enabled', 'true');
+      INSERT OR IGNORE INTO settings (key, value) VALUES ('target.cursor.enabled', 'false');
+      INSERT OR IGNORE INTO settings (key, value) VALUES ('target.continue.enabled', 'false');
+      INSERT OR IGNORE INTO settings (key, value) VALUES ('target.aider.enabled', 'false');
+
       CREATE INDEX IF NOT EXISTS idx_models_provider ON models(provider);
       CREATE INDEX IF NOT EXISTS idx_experiments_status ON experiments(status);
       CREATE INDEX IF NOT EXISTS idx_usage_timestamp ON usage_records(timestamp);
@@ -150,6 +155,22 @@ export class Store {
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now'))
       );`,
+
+      // v3: experiment_results table
+      `CREATE TABLE IF NOT EXISTS experiment_results (
+        id TEXT PRIMARY KEY,
+        experiment_id TEXT NOT NULL REFERENCES experiments(id) ON DELETE CASCADE,
+        run_number INTEGER NOT NULL DEFAULT 1,
+        output TEXT,
+        tokens_prompt INTEGER,
+        tokens_completion INTEGER,
+        latency_ms REAL,
+        cost_usd REAL,
+        reasoning TEXT,
+        scores TEXT DEFAULT '{}',
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_results_experiment ON experiment_results(experiment_id);`,
     ];
 
     for (let i = version; i < migrations.length; i++) {
