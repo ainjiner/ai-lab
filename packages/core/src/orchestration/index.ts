@@ -243,7 +243,7 @@ export class OrchestrationManager {
     const preview: Array<{ path: string; content: string }> = [];
 
     const store = getStore();
-    const instances = store.query<any, []>("SELECT * FROM instances WHERE enabled = 1").all();
+    const instances = store.query<any, []>("SELECT * FROM provider_instances WHERE enabled = 1").all();
 
     let minChunkSize = 80;
     try {

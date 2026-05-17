@@ -1,4 +1,4 @@
-import { component$, useStore, useVisibleTask$ } from "@builder.io/qwik";
+import { component$, useStore, useTask$ } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
 import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
 import { api } from "~/lib/api";
@@ -11,7 +11,7 @@ export default component$(() => {
     period: "monthly",
   });
 
-  useVisibleTask$(async ({ track }) => {
+  useTask$(async ({ track }) => {
     track(() => state.period);
     state.loading = true;
     try {

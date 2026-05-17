@@ -1,4 +1,4 @@
-import { component$, useStore, useVisibleTask$, $ } from "@builder.io/qwik";
+import { component$, useStore, useTask$, $ } from "@builder.io/qwik";
 import { useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
@@ -151,7 +151,7 @@ export default component$(() => {
     }
   });
 
-  useVisibleTask$(async () => {
+  useTask$(async () => {
     try {
       await reload();
       const [instancesRes, modelsRes] = await Promise.all([

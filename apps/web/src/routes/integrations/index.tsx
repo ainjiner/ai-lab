@@ -1,4 +1,4 @@
-import { component$, useStore, useVisibleTask$, $ } from "@builder.io/qwik";
+import { component$, useStore, useTask$, $ } from "@builder.io/qwik";
 import { useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
@@ -40,7 +40,7 @@ export default component$(() => {
     state.instances = i.instances;
   });
 
-  useVisibleTask$(async () => {
+  useTask$(async () => {
     try {
       await reload();
       state.loading = false;

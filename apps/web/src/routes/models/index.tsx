@@ -1,4 +1,4 @@
-import { component$, useStore, useVisibleTask$, useTask$, $ } from "@builder.io/qwik";
+import { component$, useStore, useTask$, $ } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
@@ -106,7 +106,7 @@ export default component$(() => {
     }
   });
 
-  useVisibleTask$(async () => {
+  useTask$(async () => {
     await Promise.all([reloadInstances(), reloadAliases()]);
   });
 
