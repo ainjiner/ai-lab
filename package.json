@@ -9,12 +9,13 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "concurrently \"bun run api\" \"bun run dev:web\"",
+    "dev": "concurrently \"bun run dev:api\" \"bun run dev:web\"",
     "start": "bun run api",
     "build": "bun run build:core && bun run build:web",
     "build:core": "cd packages/core && bun build src/index.ts --outdir dist --target node --sourcemap --external bun:sqlite",
     "build:web": "cd apps/web && bun run build",
     "api": "bun packages/api/src/index.ts",
+    "dev:api": "bun run api",
     "dev:web": "cd apps/web && bun run dev",
     "cli": "bun packages/cli/src/index.ts",
     "db:reset": "rm -f ~/.local/share/ml-engine/engine.db",
