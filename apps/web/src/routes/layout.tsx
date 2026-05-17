@@ -1,9 +1,12 @@
-import { component$, Slot } from "@builder.io/qwik";
+import { component$, Slot, useContextProvider, useStore } from "@builder.io/qwik";
 import { Link, useLocation } from "@builder.io/qwik-city";
 import { Logo } from "~/components/logo/Logo";
+import { ToastProvider, ToastContext, type ToastStore } from "~/components/ui/toast";
 
 export default component$(() => {
   const loc = useLocation();
+  const toastStore = useStore<ToastStore>({ toasts: [] });
+  useContextProvider(ToastContext, toastStore);
 
   const navSections = [
     {
@@ -43,47 +46,49 @@ export default component$(() => {
   ];
 
   return (
-    <div class="flex min-h-screen">
-      <aside class="flex w-64 flex-col border-r border-surface-light bg-surface">
-        <div class="border-b border-surface-light px-4 py-5">
-          <Logo size={28} showTagline />
-        </div>
+    <ToastProvider>
+      <div class="flex min-h-screen">
+        <aside class="flex w-64 flex-col border-r border-surface-light bg-surface">
+          <div class="border-b border-surface-light px-4 py-5">
+            <Logo size={28} showTagline />
+          </div>
 
-        <nav class="flex-1 overflow-y-auto p-4">
-          {navSections.map((section) => (
-            <div key={section.title} class="mb-4">
-              <p class="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-text-muted">
-                {section.title}
-              </p>
-              <ul class="space-y-1">
-                {section.items.map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      class={`flex items-center gap-3 rounded-lg px-4 py-2 transition-colors ${
-                        loc.url.pathname === item.href
-                          ? "bg-primary text-white"
-                          : "text-text-muted hover:bg-surface-light"
-                      }`}
-                    >
-                      <span>{item.icon}</span>
-                      <span>{item.label}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </nav>
+          <nav class="flex-1 overflow-y-auto p-4">
+            {navSections.map((section) => (
+              <div key={section.title} class="mb-4">
+                <p class="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-text-muted">
+                  {section.title}
+                </p>
+                <ul class="space-y-1">
+                  {section.items.map((item) => (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        class={`flex items-center gap-3 rounded-lg px-4 py-2 transition-colors ${
+                          loc.url.pathname === item.href
+                            ? "bg-primary text-white"
+                            : "text-text-muted hover:bg-surface-light"
+                        }`}
+                      >
+                        <span>{item.icon}</span>
+                        <span>{item.label}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </nav>
 
-        <div class="border-t border-surface-light p-4">
-          <p class="text-xs text-text-muted">ML Engine v0.1.0</p>
-        </div>
-      </aside>
+          <div class="border-t border-surface-light p-4">
+            <p class="text-xs text-text-muted">AI Lab v0.1.0</p>
+          </div>
+        </aside>
 
-      <main class="flex-1 overflow-y-auto p-8">
-        <Slot />
-      </main>
-    </div>
+        <main class="flex-1 overflow-y-auto p-8">
+          <Slot />
+        </main>
+      </div>
+    </ToastProvider>
   );
 });
