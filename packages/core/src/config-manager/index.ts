@@ -26,6 +26,21 @@ export class ConfigManager {
 
   constructor() {
     for (const t of BUILTIN_TARGETS) this.targets.set(t.id, t);
+    try {
+      const rows = this.store.query<{ key: string; value: string }, []>(
+        "SELECT key, value FROM settings WHERE key LIKE 'target.%.enabled'"
+      ).all();
+      for (const row of rows) {
+        const match = row.key.match(/^target\.(.+)\.enabled$/);
+        if (match) {
+          const id = match[1];
+          const t = this.targets.get(id);
+          if (t) {
+            this.targets.set(id, { ...t, enabled: row.value === "true" });
+          }
+        }
+      }
+    } catch (e) {}
   }
 
   getSettings(): { minChunkSize: number; timeout: number; retries: number; defaultProvider?: string; defaultModel?: string } {
@@ -42,14 +57,51 @@ export class ConfigManager {
     };
   }
 
+  getConfig(): { settings: { minChunkSize: number; timeout: number; retries: number }; defaults: { provider?: string; model?: string } } {
+    const s = this.getSettings();
+    return {
+      settings: {
+        minChunkSize: s.minChunkSize,
+        timeout: s.timeout,
+        retries: s.retries,
+      },
+      defaults: {
+        provider: s.defaultProvider,
+        model: s.defaultModel,
+      },
+    };
+  }
+
+  updateConfig(config: { settings: { minChunkSize?: number; timeout?: number; retries?: number }; defaults?: { provider?: string; model?: string } }): void {
+    if (config.settings) {
+      for (const [key, value] of Object.entries(config.settings)) {
+        if (value !== undefined) {
+          this.setSetting(key, String(value));
+        }
+      }
+    }
+    if (config.defaults) {
+      if (config.defaults.provider !== undefined) {
+        this.setSetting("defaultProvider", config.defaults.provider);
+      }
+      if (config.defaults.model !== undefined) {
+        this.setSetting("defaultModel", config.defaults.model);
+      }
+    }
+  }
+
   setSetting(key: string, value: string): void {
     this.store.query(
       "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, datetime('now'))"
     ).run(key, value);
   }
 
-  listTargets(): ConfigTarget[] {
-    return [...this.targets.values()];
+  listTargets(): (ConfigTarget & { lastSynced?: string })[] {
+    const list = [...this.targets.values()];
+    return list.map(t => {
+      const row = this.store.query<{ value: string }, [string]>("SELECT value FROM settings WHERE key = ?").get(`target.${t.id}.last_synced`);
+      return { ...t, lastSynced: row ? row.value : undefined };
+    });
   }
 
   getTarget(id: string): ConfigTarget | undefined {
@@ -62,12 +114,40 @@ export class ConfigManager {
 
   enableTarget(id: string): void {
     const t = this.targets.get(id);
-    if (t) { this.targets.set(id, { ...t, enabled: true }); }
+    if (t) {
+      this.targets.set(id, { ...t, enabled: true });
+      this.setSetting(`target.${id}.enabled`, "true");
+    }
   }
 
   disableTarget(id: string): void {
     const t = this.targets.get(id);
-    if (t) { this.targets.set(id, { ...t, enabled: false }); }
+    if (t) {
+      this.targets.set(id, { ...t, enabled: false });
+      this.setSetting(`target.${id}.enabled`, "false");
+    }
+  }
+
+  validateTarget(targetId: string): { valid: boolean; errors: string[] } {
+    const target = this.getTarget(targetId);
+    if (!target) {
+      return { valid: false, errors: ["Target not found"] };
+    }
+
+    const errors: string[] = [];
+
+    if (existsSync(target.configPath)) {
+      try {
+        JSON.parse(readFileSync(target.configPath, "utf-8"));
+      } catch (e) {
+        errors.push("Config file is not valid JSON");
+      }
+    } else {
+      errors.push("Config file does not exist");
+    }
+
+    const valid = !errors.includes("Config file is not valid JSON");
+    return { valid, errors };
   }
 
   syncToTarget(targetId: string): GeneratedConfig {
@@ -115,10 +195,12 @@ export class ConfigManager {
 
       const existingAuth = existsSync(target.authPath) ? JSON.parse(readFileSync(target.authPath, "utf-8")) : {};
       for (const k of Object.keys(existingAuth)) {
-        if (!k.startsWith("baseten") && !instances.some(i => i.id === k)) auth[k] = existingAuth[k];
+        if (!instances.some(i => i.id === k)) auth[k] = existingAuth[k];
       }
       writeFileSync(target.authPath, JSON.stringify(auth, null, 2));
     }
+
+    this.setSetting(`target.${targetId}.last_synced`, new Date().toISOString());
 
     return { target, provider, auth };
   }
