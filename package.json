@@ -9,18 +9,21 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "bun run dev:web",
-    "dev:web": "bun run --filter '@ml-engine/web' dev",
-    "dev:cli": "bun run --filter '@ml-engine/cli' dev",
-    "dev:api": "bun run --filter '@ml-engine/api' dev",
-    "build": "bun run --filter '*' build",
-    "build:core": "bun run --filter '@ml-engine/core' build",
-    "build:web": "bun run --filter '@ml-engine/web' build",
-    "test": "bun run --filter '*' test",
-    "cli": "bun run packages/cli/src/index.ts",
-    "api": "bun run packages/api/src/index.ts"
+    "dev": "concurrently \"bun run api\" \"bun run dev:web\"",
+    "start": "bun run api",
+    "build": "bun run build:core && bun run build:web",
+    "build:core": "cd packages/core && bun build src/index.ts --outdir dist --target node --sourcemap --external bun:sqlite",
+    "build:web": "cd apps/web && bun run build",
+    "api": "bun packages/api/src/index.ts",
+    "dev:web": "cd apps/web && bun run dev",
+    "cli": "bun packages/cli/src/index.ts",
+    "db:reset": "rm -f ~/.local/share/ml-engine/engine.db",
+    "backup": "bun run cli export save ./backup-$(date +%Y%m%d-%H%M).json"
   },
   "keywords": ["ml", "llm", "ai", "provider", "model", "config", "opencode", "cursor", "baseten", "openrouter", "hono"],
   "author": "sandikodev",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
 }

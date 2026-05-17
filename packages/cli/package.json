@@ -5,6 +5,7 @@
   "type": "module",
   "main": "./src/index.ts",
   "bin": {
+    "ailab": "./src/index.ts",
     "ml-engine": "./src/index.ts"
   },
   "scripts": {

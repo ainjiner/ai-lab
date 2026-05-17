@@ -1,4 +1,7 @@
-const API_BASE = process.env.API_URL || "http://localhost:4321/api";
+const API_BASE =
+  (typeof import.meta !== "undefined" && import.meta.env && (import.meta.env.PUBLIC_API_URL || import.meta.env.VITE_API_URL || import.meta.env.API_URL)) ||
+  (typeof process !== "undefined" && process.env ? process.env.API_URL : undefined) ||
+  "http://localhost:4321/api";
 
 export const api = {
   get: async <T>(path: string): Promise<T> => {
