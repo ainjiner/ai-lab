@@ -1,48 +1,78 @@
-import { component$, Slot } from "@builder.io/qwik";
+import { component$, Slot, PropsOf } from "@builder.io/qwik";
 
-export const Card = component$(() => {
+export interface CardProps extends PropsOf<"div"> {
+  class?: string;
+}
+
+export const Card = component$((props: CardProps) => {
+  const { class: className, ...rest } = props;
   return (
-    <div class="rounded-xl border border-surface-light bg-surface p-6">
+    <div class={`rounded-2xl border border-surface-light bg-surface ${className || ""}`} {...rest}>
       <Slot />
     </div>
   );
 });
 
-export const CardHeader = component$(() => {
+export interface CardHeaderProps extends PropsOf<"div"> {
+  class?: string;
+}
+
+export const CardHeader = component$((props: CardHeaderProps) => {
+  const { class: className, ...rest } = props;
   return (
-    <div class="mb-4 flex flex-col space-y-1.5">
+    <div class={`p-6 pb-0 flex flex-col space-y-1.5 ${className || ""}`} {...rest}>
       <Slot />
     </div>
   );
 });
 
-export const CardTitle = component$(() => {
+export interface CardTitleProps extends PropsOf<"h3"> {
+  class?: string;
+}
+
+export const CardTitle = component$((props: CardTitleProps) => {
+  const { class: className, ...rest } = props;
   return (
-    <h3 class="text-xl font-semibold leading-none tracking-tight">
+    <h3 class={`text-base font-semibold leading-none tracking-tight text-text ${className || ""}`} {...rest}>
       <Slot />
     </h3>
   );
 });
 
-export const CardDescription = component$(() => {
+export interface CardDescriptionProps extends PropsOf<"p"> {
+  class?: string;
+}
+
+export const CardDescription = component$((props: CardDescriptionProps) => {
+  const { class: className, ...rest } = props;
   return (
-    <p class="text-sm text-text-muted">
+    <p class={`text-sm text-text-muted ${className || ""}`} {...rest}>
       <Slot />
     </p>
   );
 });
 
-export const CardContent = component$(() => {
+export interface CardContentProps extends PropsOf<"div"> {
+  class?: string;
+}
+
+export const CardContent = component$((props: CardContentProps) => {
+  const { class: className, ...rest } = props;
   return (
-    <div class="pt-0">
+    <div class={`p-6 ${className || ""}`} {...rest}>
       <Slot />
     </div>
   );
 });
 
-export const CardFooter = component$(() => {
+export interface CardFooterProps extends PropsOf<"div"> {
+  class?: string;
+}
+
+export const CardFooter = component$((props: CardFooterProps) => {
+  const { class: className, ...rest } = props;
   return (
-    <div class="flex items-center pt-4">
+    <div class={`p-6 pt-0 flex items-center ${className || ""}`} {...rest}>
       <Slot />
     </div>
   );

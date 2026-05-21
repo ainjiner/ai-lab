@@ -1,9 +1,9 @@
-import { component$, createContextId, useContext, useStore, Slot, $ } from "@builder.io/qwik";
+import { component$, createContextId, useContext, Slot, $, useStylesScoped$ } from "@builder.io/qwik";
 
 export interface Toast {
   id: string;
   msg: string;
-  kind: "success" | "error" | "info";
+  kind: "success" | "error" | "info" | "warning";
 }
 
 export interface ToastStore {
@@ -14,63 +14,97 @@ export const ToastContext = createContextId<ToastStore>("ai-lab-toast-context");
 
 export const useToast = () => {
   const store = useContext(ToastContext);
-  
+
+  const dismiss = $((id: string) => {
+    store.toasts = store.toasts.filter((t) => t.id !== id);
+  });
+
   const show = $((msg: string, kind: Toast["kind"] = "info") => {
     const id = Math.random().toString(36).substring(2, 9);
     store.toasts = [...store.toasts, { id, msg, kind }];
-    
     setTimeout(() => {
       store.toasts = store.toasts.filter((t) => t.id !== id);
-    }, 4000);
+    }, 4500);
   });
 
   return {
     show,
+    dismiss,
     success: $((msg: string) => show(msg, "success")),
     error: $((msg: string) => show(msg, "error")),
     info: $((msg: string) => show(msg, "info")),
+    warning: $((msg: string) => show(msg, "warning")),
   };
 };
 
+const TOAST_ICONS: Record<Toast["kind"], string> = {
+  success: "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+  error: "M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+  warning: "M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.008v.008H12v-.008z",
+  info: "M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+};
+
+const TOAST_STYLES: Record<Toast["kind"], string> = {
+  success: "bg-[#0d1f0d]/95 border-[#1a4d1a]/60 text-[#4ade80]",
+  error:   "bg-[#1f0d0d]/95 border-[#4d1a1a]/60 text-[#f87171]",
+  warning: "bg-[#1f1a0d]/95 border-[#4d3d0d]/60 text-[#fbbf24]",
+  info:    "bg-[#0d1020]/95 border-[#1a2050]/60 text-[#60a5fa]",
+};
+
 export const ToastProvider = component$(() => {
-  const store = useStore<ToastStore>({ toasts: [] });
-  
+  useStylesScoped$(`
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateX(100%) scale(0.95); }
+      to   { opacity: 1; transform: translateX(0)    scale(1);    }
+    }
+    .toast-item {
+      animation: toast-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  `);
+
+  const store = useContext(ToastContext);
+
   return (
     <div class="contents">
       <Slot />
-      
-      <div class="fixed top-4 right-4 z-[9999] flex flex-col gap-3 pointer-events-none w-full max-w-sm">
+      <div
+        aria-live="polite"
+        aria-label="Notifications"
+        class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none w-[340px]"
+      >
         {store.toasts.map((toast) => (
           <div
             key={toast.id}
-            onClick$={() => {
-              store.toasts = store.toasts.filter((t) => t.id !== toast.id);
-            }}
             class={[
-              "flex items-start justify-between gap-3 rounded-xl border p-4 shadow-xl backdrop-blur-md transition-all duration-300 pointer-events-auto cursor-pointer transform hover:scale-[1.02]",
-              toast.kind === "success" && "bg-emerald-950/90 border-emerald-500/30 text-emerald-200",
-              toast.kind === "error" && "bg-red-950/90 border-red-500/30 text-red-200",
-              toast.kind === "info" && "bg-blue-950/90 border-blue-500/30 text-blue-200",
+              "toast-item flex items-start gap-3 rounded-xl border px-4 py-3.5 pointer-events-auto",
+              "backdrop-blur-xl shadow-lg",
+              TOAST_STYLES[toast.kind],
             ]}
+            role="alert"
           >
-            <div class="flex gap-2.5">
-              <span class="text-lg mt-0.5">
-                {toast.kind === "success" && "✅"}
-                {toast.kind === "error" && "❌"}
-                {toast.kind === "info" && "ℹ️"}
-              </span>
-              <div class="flex flex-col gap-0.5">
-                <p class="text-sm font-medium leading-relaxed">{toast.msg}</p>
-              </div>
-            </div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="w-4 h-4 shrink-0 mt-0.5 opacity-90"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d={TOAST_ICONS[toast.kind]} />
+            </svg>
+
+            <p class="text-sm font-medium leading-snug flex-1 min-w-0">{toast.msg}</p>
+
             <button
-              onClick$={(e) => {
-                e.stopPropagation();
+              aria-label="Dismiss notification"
+              onClick$={() => {
                 store.toasts = store.toasts.filter((t) => t.id !== toast.id);
               }}
-              class="text-current opacity-60 hover:opacity-100 transition-opacity text-lg leading-none"
+              class="shrink-0 opacity-50 hover:opacity-100 transition-opacity -mr-1 -mt-0.5 p-0.5 rounded"
             >
-              &times;
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           </div>
         ))}
