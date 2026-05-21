@@ -8,9 +8,9 @@
 
 ## 1. Apa Ini?
 
-AI Lab adalah **ML/LLM Engineering Platform** — sebuah dasbor self-hosted yang menyatukan semua yang dibutuhkan AI engineer dalam satu tempat.
+AI Lab adalah **ML/LLM Engineering Platform** — sebuah aplikasi desktop-native yang menyatukan semua yang dibutuhkan AI engineer dalam satu tempat.
 
-Bukan SaaS. Bukan plugin. Bukan wrapper. Ini **platform mandiri** yang jalan di localhost kamu: Web UI di port 5173, REST API di port 4321, SQLite sebagai database, dan CLI binary `ml-engine` untuk otomatisasi.
+Bukan SaaS. Bukan plugin. Bukan wrapper. Ini **aplikasi mandiri** yang hidup di komputermu: Web UI saat ini (Qwik + Tailwind), REST API (Hono, port 4321), SQLite sebagai database, CLI binary `ml-engine` untuk otomatisasi. Arah: **Tauri desktop app** — performa native, filesystem access, system tray.
 
 ### Satu kalimat:
 
@@ -100,19 +100,39 @@ AI Lab membaca struktur OpenCode: agent-agent di `~/.config/opencode/agents/`, s
 
 ## 4. Filosofi Inti
 
-### 4.1. Local-First, Always
+### 4.1. Local-First, Desktop-Native
 
-AI Lab jalan di mesin kamu. Data di SQLite lokal (`~/.local/share/ml-engine/engine.db`). Tidak ada cloud dependency. Tidak ada telemetry. Tidak ada vendor lock-in.
+AI Lab jalan di mesin kamu. Bukan SaaS. Bukan "self-hosted" yang harus deploy ke VPS. Ini aplikasi yang hidup di komputermu sendiri.
 
-Kenapa? Karena **data engineering kamu adalah milik kamu**. Provider API keys, usage history, experiment results — semua sensitif. Harus tetap di mesin lokal.
+Saat ini lewat Web UI + REST API di localhost. Tapi arah jangka panjangnya: **Tauri desktop app** — performa native, akses filesystem langsung, system tray, auto-start. Begitu ada yang mau maintain Tauri layer-nya, kita porting.
 
-### 4.2. Self-Hosted, Free Forever
+Data di SQLite lokal (`~/.local/share/ml-engine/engine.db`). Tidak ada cloud dependency. Tidak ada telemetry. Tidak ada vendor lock-in.
+
+Kenapa? Karena **data engineering kamu adalah milik kamu**. Provider API keys, usage history, experiment results — semua sensitif. Harus tetap di mesin lokal. Dan desktop native lebih cepat, lebih ringan, lebih terintegrasi dengan OS.
+
+### 4.2. Free Forever
 
 MIT license. Bukan open-core (feature premium dikunci). Bukan freemium (user terbatas). **Semua fitur, semua user, gratis, selamanya.**
 
 Kenapa? Karena kami percaya tools fundamental untuk AI engineering harus bisa diakses semua orang — dari solo dev di Indonesia sampai startup di Silicon Valley.
 
-### 4.3. Platform > Tools
+### 4.3. Desktop-Native via Tauri
+
+Saat ini AI Lab jalan sebagai Web UI + REST API di localhost. Tapi **ini bukan tujuan akhir.**
+
+**Tauri** adalah rencana jangka panjang: bungkus frontend Qwik + backend Bun dalam satu binary desktop. Hasilnya:
+
+- **Performa native** — tidak ada overhead browser tab
+- **Akses filesystem** — baca/tulis file config OpenCode langsung
+- **System tray** — AI Lab selalu aktif di background, quick access
+- **Auto-start** — nyala bareng OS, siap dipakai kapan saja
+- **Cross-platform** — macOS, Windows, Linux, satu codebase
+
+Arsitekturnya tidak berubah: REST API + Web frontend yang sama, tinggal dibungkus Tauri shell. Ini bukan rewrite — ini **repackage** dari apa yang sudah ada.
+
+Status: menunggu kontributor yang mau maintain Tauri layer. Kalau ada yang mau ambil, kita porting.
+
+### 4.4. Platform > Tools
 
 AI Lab bukan koleksi tools yang di-gabung. AI Lab adalah **platform** — setiap fitur didesain untuk bekerja bersama:
 
@@ -124,17 +144,20 @@ AI Lab bukan koleksi tools yang di-gabung. AI Lab adalah **platform** — setiap
 
 Tidak ada data yang dimasukkan dua kali. Semuanya mengalir.
 
-### 4.4. CLI + Web = Satu Kesatuan
+### 4.5. CLI + Web + Desktop = Satu Kesatuan
 
-Semua yang bisa kamu lakukan di Web UI, bisa juga lewat CLI. Semua yang kamu lakukan di CLI, langsung muncul di Web UI.
+Semua yang bisa kamu lakukan di Web UI, bisa juga lewat CLI. Semua yang kamu lakukan di CLI, langsung muncul di Web UI. Nanti semua itu jalan dalam satu Tauri desktop app.
 
 ```
 Web UI  ←→  REST API  ←→  Core Engine (SQLite)  ←→  CLI
+   └──────────────────┬──────────────────────────────┘
+                      ↓
+              Tauri Desktop Shell
 ```
 
-Tidak ada "CLI mode" vs "Web mode" — dua-duanya interface ke engine yang sama.
+Tidak ada "CLI mode" vs "Web mode" vs "Desktop mode" — tiga-tiganya interface ke engine yang sama.
 
-### 4.5. Konvensi, Bukan Konfigurasi
+### 4.6. Konvensi, Bukan Konfigurasi
 
 AI Lab tahu di mana file-file OpenCode berada. Tahu format JSON-nya. Tahu cara membaca agent dan skill. Kamu tidak perlu konfigurasi apa pun — AI Lab mendeteksi sendiri.
 
@@ -152,14 +175,14 @@ Satu-satunya yang kamu butuhkan: API key dari provider yang mau kamu pakai.
 | **Startup AI 3-10 orang** | Butuh shared dashboard tanpa per-seat pricing |
 | **OpenCode power user** | Capek edit JSON manual tiap ganti model |
 | **ML researcher** | Butuh experiment tracking yang terintegrasi dengan provider |
-| **Indie hacker Indonesia** | Gratis, self-hosted, gak perlu kartu kredit |
+| **Indie hacker Indonesia** | Gratis, local-first, gak perlu kartu kredit |
 
 ### AI Lab BUKAN untuk:
 
 | Profil | Kenapa |
 |--------|--------|
 | **Enterprise 1000+ user** | Belum ada RBAC, SSO, audit log |
-| **Yang maunya SaaS tinggal login** | Harus self-hosted (bisa jalan di VPS kok) |
+| **Yang maunya SaaS tinggal login** | Harus desktop-native (untuk sekarang: Web UI) |
 | **Yang butuh real-time collaboration** | Single-user/localhost (untuk sekarang) |
 
 ---
@@ -170,11 +193,11 @@ Satu-satunya yang kamu butuhkan: API key dari provider yang mau kamu pakai.
 |-------|---------|
 | **Helicone** | $79/bulan buat pro plan. Gak ada model catalog. Gak ada provider management. |
 | **LangFuse** | $59/bulan. Prompt management bagus, tapi gak ada config sync ke OpenCode. |
-| **LangSmith** | $39/seat. Gak self-hosted. Vendor lock-in ke ekosistem LangChain. |
+| **LangSmith** | $39/seat. Cloud-only. Vendor lock-in ke ekosistem LangChain. |
 | **W&B** | $50+/bulan. Experiments bagus, tapi gak ada provider management atau config sync. |
 | **Arize Phoenix** | Gratis & self-hosted. Tapi tracing + eval doang. Gak ada model catalog, gak ada cost projection. |
 
-**Tidak ada satu pun tools yang ngasih: provider management + model catalog + cost analytics + experiments + config sync → dalam satu self-hosted dasbor gratis.**
+**Tidak ada satu pun tools yang ngasih: provider management + model catalog + cost analytics + experiments + config sync → dalam satu local-first aplikasi gratis.**
 
 AI Lab mengisi celah itu.
 
@@ -187,6 +210,7 @@ AI Lab mengisi celah itu.
 | **Bun** | Runtime JS tercepat. Built-in SQLite. Monorepo-native. |
 | **TypeScript** | Type safety end-to-end. Dari core engine sampai Web UI. |
 | **Qwik** | Resumable framework. SSR tanpa hydration overhead. Cocok buat dasbor data-heavy. |
+| **Tauri** | Desktop-native wrapper. Akses filesystem, system tray, auto-start. (Planned) |
 | **Hono** | Web framework ringan untuk REST API. Bun-native. |
 | **SQLite** | Zero-config database. File-based. Backup tinggal copy file. |
 | **Tailwind CSS v4** | Utility-first. Gak ada CSS framework lain. Bundle minimal. |
@@ -203,7 +227,7 @@ Bayangkan AI Lab sebagai **OS untuk AI Engineering**:
 ```
 v0.1 (sekarang)     →  Foundation: provider, model, config, cost, experiments
 v0.2 (mendatang)    →  Playground streaming, prompts management, evaluations
-v0.3                →  RAG/CAG, vector store, document chunking
+v0.3                →  Tauri desktop app, RAG/CAG, vector store
 v0.4                →  Agent tracing, multi-agent debugging
 v0.5                →  Fine-tuning pipeline, dataset curation
 v1.0                →  Tim kolaborasi, RBAC, remote deployment

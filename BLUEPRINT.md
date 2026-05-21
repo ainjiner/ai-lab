@@ -187,16 +187,18 @@ Tidak ada platform yang menghubungkan ketiga elemen ini dalam satu sistem:
 
 ## 4. Arsitektur: Hybrid Local + Edge Cloud
 
-### 4.1. Kenapa Hybrid?
+### 4.1. Kenapa Hybrid + Desktop?
 
 Visi "Giant Brain" tidak bisa purely local. Paper indexing, job matching, notification — semua butuh layanan yang jalan 24/7. Tapi data sensitif (API keys, usage, eksperimen pribadi) harus tetap di mesin lokal user.
+
+Dan soal "local": ini bukan self-hosted web app. **Arah jangka panjangnya adalah Tauri desktop app** — performa native, akses filesystem, system tray. Arsitektur yang sama (REST API + Web frontend) tinggal dibungkus Tauri.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                     AI LAB — Hybrid Architecture                 │
 │                                                                  │
 │  ┌──────────────────────────┐    ┌──────────────────────────┐   │
-│  │    LOCAL (per user)      │    │   EDGE CLOUD (24/7)      │   │
+│  │    DESKTOP (Tauri)       │    │   EDGE CLOUD (24/7)      │   │
 │  │                          │    │                           │   │
 │  │  • API keys              │    │  • Paper indexer          │   │
 │  │  • Usage history         │◄──►│  • Research graph         │   │
@@ -204,24 +206,66 @@ Visi "Giant Brain" tidak bisa purely local. Paper indexing, job matching, notifi
 │  │  • Cost data             │    │  • Skill matching engine  │   │
 │  │  • Private models        │    │  • Notification system    │   │
 │  │  • Config files          │    │  • Reputation engine      │   │
-│  │                          │    │  • Public profiles        │   │
-│  │  Stack:                  │    │                           │   │
-│  │  Qwik + Hono + SQLite    │    │  Stack:                   │   │
-│  │  Bun runtime             │    │  Bun + Hono + PostgreSQL  │   │
-│  │                          │    │  + pgvector + Redis       │   │
+│  │  • System tray           │    │  • Public profiles        │   │
+│  │  • Filesystem access     │    │                           │   │
+│  │                          │    │  Stack:                   │   │
+│  │  Stack:                  │    │  Bun + Hono + PostgreSQL  │   │
+│  │  Tauri + Qwik + Hono     │    │  + pgvector + Redis       │   │
+│  │  + Bun + SQLite          │    │                           │   │
 │  └──────────────────────────┘    └──────────────────────────┘   │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 4.2. Pembagian Tanggung Jawab
+### 4.2. Tauri Desktop App (Cross-Cutting)
+
+Tauri bukan fase terpisah — ini **cross-cutting upgrade** yang bisa dimulai kapan saja begitu ada kontributor yang mau maintain. Arsitektur yang sama tidak berubah: REST API + Web frontend, dibungkus Tauri shell.
+
+```
+┌─────────────────────────────────────────────┐
+│              TAURI DESKTOP APP               │
+│                                              │
+│  ┌────────────────┐  ┌──────────────────┐   │
+│  │  WebView       │  │  Rust Backend    │   │
+│  │  (Qwik UI)     │  │  (Tauri Commands)│   │
+│  │                │  │                  │   │
+│  │  localhost:    │  │  • Filesystem    │   │
+│  │  5173          │  │  • System tray   │   │
+│  │                │  │  • Auto-start    │   │
+│  └───────┬────────┘  │  • Notifications │   │
+│          │           │  • Process mgmt  │   │
+│          ↓           └────────┬─────────┘   │
+│  ┌────────────────────────────┐             │
+│  │     Bun Backend            │             │
+│  │     (Hono API :4321)       │             │
+│  │     + SQLite               │             │
+│  └────────────────────────────┘             │
+│                                              │
+└─────────────────────────────────────────────┘
+```
+
+**Keuntungan Tauri vs Browser Tab:**
+
+| Aspek | Browser Tab | Tauri Desktop |
+|-------|------------|---------------|
+| Memory | ~200-400MB | ~50-100MB |
+| Startup | Manual (buka browser) | Auto-start with OS |
+| Filesystem | Terbatas (Web API) | Full access (Rust) |
+| System tray | Tidak ada | Quick access, background |
+| Offline | Tergantung browser cache | Native offline |
+| Update | Manual git pull | Auto-update via Tauri |
+| Distribusi | `git clone && bun install` | Single binary download |
+
+**Status:** Planned. Menunggu kontributor Tauri. Kalau ada yang mau maintain layer Tauri (`src-tauri/`), kita langsung porting.
+
+### 4.3. Pembagian Tanggung Jawab
 
 | Data | Tempat | Alasan |
 |------|--------|--------|
-| API keys provider | **Local only** | Kredensial sensitif, tidak pernah dikirim ke cloud |
-| Usage history | **Local** | Data pribadi, tapi bisa di-share opsional untuk portfolio |
-| Experiments | **Local** | Hasil eksperimen privat, publish opsional |
-| Cost data | **Local** | Tracking budget personal |
+| API keys provider | **Desktop only** | Kredensial sensitif, tidak pernah dikirim ke cloud |
+| Usage history | **Desktop** | Data pribadi, tapi bisa di-share opsional untuk portfolio |
+| Experiments | **Desktop** | Hasil eksperimen privat, publish opsional |
+| Cost data | **Desktop** | Tracking budget personal |
 | ──────── | ──── | ──── |
 | Paper metadata | **Cloud** | Data publik, perlu di-crawl 24/7 |
 | Citation graph | **Cloud** | Data publik, komputasi berat |
@@ -231,7 +275,7 @@ Visi "Giant Brain" tidak bisa purely local. Paper indexing, job matching, notifi
 | Reputation scores | **Cloud** | Komputasi aggregate lintas user |
 | Notifications | **Cloud** | Push event ke user |
 
-### 4.3. Edge Cloud Infrastructure (Minimal Viable)
+### 4.4. Edge Cloud Infrastructure (Minimal Viable)
 
 Untuk early stage, edge cloud cukup 1 VPS:
 
@@ -548,7 +592,7 @@ BLUEPRINT.md: Dokumen ini ✅
 1. **Config JSON selalu digenerate, tidak pernah diedit manual.** `syncToTarget()` yang nulis.
 2. **Web UI tidak import `@ml-engine/core` langsung.** Semua data lewat REST API.
 3. **Tidak ada chart library eksternal.** Pure CSS untuk visualisasi.
-4. **Local-first.** Data sensitif (API keys) tidak pernah dikirim ke cloud.
+4. **Local-first, desktop-native.** Data sensitif (API keys) tidak pernah dikirim ke cloud. Arah: Tauri desktop app untuk performa native.
 5. **Backward compat `ml-engine` binary.**
 6. **Tidak ada `as any` atau `@ts-ignore`.**
 7. **Tidak ada `require()` di ESM.**
