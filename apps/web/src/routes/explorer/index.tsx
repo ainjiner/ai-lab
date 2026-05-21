@@ -1,9 +1,22 @@
-import { component$, useStore, $ } from "@builder.io/qwik";
+import { component$, useStore, useTask$, $ } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
 import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
 import { PageHeader } from "~/components/ui/page-header";
 import { Badge } from "~/components/ui/badge";
+import { Skeleton } from "~/components/ui/skeleton";
 import { SearchInput } from "~/components/ui/search-filter";
+
+interface Paper {
+  id: string;
+  title: string;
+  authors: string[];
+  abstract: string;
+  url: string;
+  source: "arxiv" | "huggingface" | "semantic-scholar";
+  published: string;
+  categories: string[];
+  indexed_at: string;
+}
 
 interface Resource {
   name: string;
@@ -51,21 +64,6 @@ const categories: Category[] = [
       { name: "axolotl", url: "https://github.com/OpenAccess-AI-Collective/axolotl", description: "Fine-tuning LLM yang paling lengkap", tags: ["fine-tuning","llm"] },
       { name: "open-webui", url: "https://github.com/open-webui/open-webui", description: "ChatGPT-style UI for local/remote LLM", tags: ["ui","self-hosted"] },
       { name: "MLX", url: "https://github.com/ml-explore/mlx", description: "Apple Silicon-native ML framework", tags: ["apple","inference"] },
-    ],
-  },
-  {
-    id: "research",
-    emoji: "🧠",
-    name: "Research",
-    description: "Paper, benchmark, dan publikasi AI/ML terkini",
-    items: [
-      { name: "Arxiv cs.AI", url: "https://arxiv.org/list/cs.AI/recent", description: "Latest AI papers on Arxiv", tags: ["paper"] },
-      { name: "Arxiv cs.CL", url: "https://arxiv.org/list/cs.CL/recent", description: "Computational linguistics & NLP", tags: ["paper","nlp"] },
-      { name: "Papers With Code", url: "https://paperswithcode.com", description: "Paper + implementation code", tags: ["paper","code"] },
-      { name: "HuggingFace Daily Papers", url: "https://huggingface.co/papers", description: "Top-3 daily ranked ML papers", tags: ["paper","trending"] },
-      { name: "Semantic Scholar", url: "https://www.semanticscholar.org", description: "AI-powered academic search engine", tags: ["paper","search"] },
-      { name: "LiveBench", url: "https://livebench.ai", description: "Real-time LLM benchmark leaderboard", tags: ["benchmark","llm"] },
-      { name: "Chatbot Arena", url: "https://chat.lmsys.org", description: "Blind battle — LLM elo rating", tags: ["benchmark","elo"] },
     ],
   },
   {
@@ -126,8 +124,26 @@ const categories: Category[] = [
   },
 ];
 
+const LENS_API = "http://localhost:4322";
+const sourceLabel: Record<string, string> = { arxiv: "Arxiv", huggingface: "HF Daily", "semantic-scholar": "Semantic Scholar" };
+const sourceBadge: Record<string, string> = { arxiv: "bg-red-500/10 text-red-400", huggingface: "bg-yellow-500/10 text-yellow-400", "semantic-scholar": "bg-blue-500/10 text-blue-400" };
+
 export default component$(() => {
-  const state = useStore({ search: "" });
+  const state = useStore({ search: "", papers: [] as Paper[], papersLoading: true });
+
+  useTask$(async () => {
+    try {
+      const res = await fetch(`${LENS_API}/papers?limit=12`);
+      if (res.ok) {
+        const data = await res.json();
+        state.papers = data.papers || [];
+      }
+    } catch {
+      state.papers = [];
+    } finally {
+      state.papersLoading = false;
+    }
+  });
 
   const filtered = categories
     .map((cat) => ({
@@ -142,15 +158,61 @@ export default component$(() => {
     }))
     .filter((cat) => cat.items.length > 0);
 
+  const formatDate = (d: string) => {
+    try { return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" }); } catch { return d; }
+  };
+
   return (
     <div class="space-y-8">
       <PageHeader title="Explorer" description="Portal komunitas, paper, tools — biar selalu walking the path">
-        <SearchInput
-          value={state.search}
-          placeholder="Cari resource, paper, tools..."
-          onInput$={(val) => (state.search = val)}
-        />
+        <SearchInput value={state.search} placeholder="Cari resource, paper, tools..." onInput$={(val) => (state.search = val)} />
       </PageHeader>
+
+      <div>
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-lg font-bold text-text">🔬 Latest AI Research</h2>
+            <p class="text-xs text-text-muted mt-0.5">Live feed from Arxiv & HuggingFace — powered by Lens</p>
+          </div>
+        </div>
+
+        {state.papersLoading ? (
+          <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Card key={i}><CardHeader><Skeleton class="h-4 w-3/4 mb-2" /><Skeleton class="h-3 w-1/2" /></CardHeader><CardContent><Skeleton class="h-16 w-full" /></CardContent></Card>
+            ))}
+          </div>
+        ) : state.papers.length === 0 ? (
+          <Card><CardContent class="py-8 text-center text-text-muted text-sm">Lens API not running. Start with <code class="bg-surface-light px-1.5 py-0.5 rounded text-xs">bun run dev:lens</code></CardContent></Card>
+        ) : (
+          <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {state.papers.slice(0, 6).map((paper) => (
+              <a key={paper.id} href={paper.url} target="_blank" rel="noopener noreferrer" class="group block">
+                <Card class="h-full hover:border-primary/30 transition-colors">
+                  <CardContent class="p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                      <span class={`text-[10px] font-medium px-1.5 py-0.5 rounded ${sourceBadge[paper.source] || "bg-surface-light text-text-muted"}`}>
+                        {sourceLabel[paper.source] || paper.source}
+                      </span>
+                      <span class="text-[10px] text-text-subtle">{formatDate(paper.published)}</span>
+                    </div>
+                    <h3 class="text-sm font-semibold text-text group-hover:text-primary transition-colors line-clamp-2 mb-1.5">{paper.title}</h3>
+                    <p class="text-xs text-text-muted line-clamp-1 mb-2">{paper.authors.slice(0, 3).join(", ")}{paper.authors.length > 3 ? ` +${paper.authors.length - 3}` : ""}</p>
+                    <p class="text-xs text-text-subtle line-clamp-3 leading-relaxed">{paper.abstract}</p>
+                    <div class="flex flex-wrap gap-1 mt-3">
+                      {paper.categories.slice(0, 3).map((c) => (
+                        <Badge key={c} variant="outline" class="text-[10px] py-0 px-1.5">{c}</Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div class="w-full h-px bg-surface-light"></div>
 
       {filtered.length === 0 && (
         <div class="flex flex-col items-center justify-center py-20 text-text-muted">
@@ -176,25 +238,14 @@ export default component$(() => {
               <ul class="space-y-1">
                 {cat.items.map((item) => (
                   <li key={item.name}>
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="group flex flex-col rounded-lg px-3 py-2 -mx-3 hover:bg-surface-light/60 transition-colors"
-                    >
+                    <a href={item.url} target="_blank" rel="noopener noreferrer" class="group flex flex-col rounded-lg px-3 py-2 -mx-3 hover:bg-surface-light/60 transition-colors">
                       <div class="flex items-center gap-1.5">
-                        <span class="text-sm font-medium text-text group-hover:text-primary transition-colors truncate">
-                          {item.name}
-                        </span>
-                        <svg class="w-3 h-3 text-text-subtle group-hover:text-primary shrink-0 opacity-0 group-hover:opacity-100 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
+                        <span class="text-sm font-medium text-text group-hover:text-primary transition-colors truncate">{item.name}</span>
+                        <svg class="w-3 h-3 text-text-subtle group-hover:text-primary shrink-0 opacity-0 group-hover:opacity-100 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                       </div>
                       <p class="text-xs text-text-muted mt-0.5 line-clamp-1">{item.description}</p>
                       <div class="flex gap-1 mt-1.5">
-                        {item.tags.map((tag) => (
-                          <Badge key={tag} variant="outline" class="text-[10px] py-0 px-1.5">{tag}</Badge>
-                        ))}
+                        {item.tags.map((tag) => (<Badge key={tag} variant="outline" class="text-[10px] py-0 px-1.5">{tag}</Badge>))}
                       </div>
                     </a>
                   </li>
@@ -207,14 +258,7 @@ export default component$(() => {
 
       <div class="text-center text-xs text-text-subtle pt-4 pb-8">
         Links are curated. Want to suggest one?{" "}
-        <a
-          href="https://github.com/ainjiner/ai-lab/issues/new"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="text-primary hover:underline"
-        >
-          Open an issue →
-        </a>
+        <a href="https://github.com/ainjiner/ai-lab/issues/new" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">Open an issue →</a>
       </div>
     </div>
   );

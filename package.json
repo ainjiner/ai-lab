@@ -17,6 +17,7 @@
     "api": "bun packages/api/src/index.ts",
     "dev:api": "bun run api",
     "dev:web": "cd apps/web && bun run dev",
+    "dev:lens": "cd apps/lens && bun run dev",
     "cli": "bun packages/cli/src/index.ts",
     "db:reset": "rm -f ~/.local/share/ml-engine/engine.db",
     "backup": "bun run cli export save ./backup-$(date +%Y%m%d-%H%M).json"
