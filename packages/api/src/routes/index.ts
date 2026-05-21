@@ -533,6 +533,76 @@ api.post("/playground/chat", async (c) => {
   });
 });
 
+api.post("/playground/stream", async (c) => {
+  const { messages, model, provider: providerId, temperature, maxTokens, systemPrompt } = await c.req.json();
+
+  const instances = providerRegistry.listInstances();
+  const instance = instances.find(i => i.providerId === providerId && i.enabled !== false);
+
+  if (!instance) {
+    return c.json({ error: `No enabled instance found for provider "${providerId}". Add one via Integrations page.` }, 404);
+  }
+
+  const prov = providerRegistry.getProvider(providerId);
+  const baseUrl = instance.baseUrl || prov?.baseUrl || "";
+
+  const apiMessages: { role: string; content: string }[] = [];
+  if (systemPrompt) {
+    apiMessages.push({ role: "system", content: systemPrompt });
+  }
+  for (const m of messages) {
+    if (m.role === "user" || m.role === "assistant") {
+      apiMessages.push({ role: m.role, content: m.content });
+    }
+  }
+
+  const body: Record<string, unknown> = {
+    model,
+    messages: apiMessages,
+    temperature,
+    max_tokens: maxTokens || 2048,
+    stream: true,
+  };
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (prov?.authMethod !== "none") {
+    headers["Authorization"] = `Bearer ${instance.apiKey}`;
+  }
+
+  try {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => "");
+      return c.json({ error: `Provider API error (${response.status}): ${errText.slice(0, 300)}` }, 502);
+    }
+
+    if (!response.body) {
+      return c.json({ error: "Provider returned empty response body" }, 502);
+    }
+
+    return new Response(response.body, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+  } catch (err: any) {
+    return c.json({ error: `Failed to connect to provider: ${err.message}` }, 502);
+  }
+});
+
 // === Alerts Routes ===
 api.get("/alerts", (c) => {
   const alerts = [

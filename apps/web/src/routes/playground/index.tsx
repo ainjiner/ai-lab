@@ -9,7 +9,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
 import { Select } from "~/components/ui/select";
 import { Input } from "~/components/ui/input";
 import { ChatContainer, ChatMessage, StreamingIndicator } from "~/components/ui/chat";
-import { api } from "~/lib/api";
+
+const API_BASE = "http://localhost:4321/api";
 
 interface PlaygroundConfig {
   provider: string;
@@ -54,8 +55,10 @@ export default component$(() => {
 
   useTask$(async () => {
     try {
-      const res: any = await api.get("/models");
-      const raw: any[] = Array.isArray(res) ? res : res.models || [];
+      const res = await fetch(`${API_BASE}/models`);
+      if (!res.ok) throw new Error("Failed to load models");
+      const data = await res.json();
+      const raw: any[] = Array.isArray(data) ? data : data.models || [];
       const seen = new Set<string>();
       const provs: string[] = [];
       for (const m of raw) {
@@ -73,38 +76,88 @@ export default component$(() => {
   const sendMessage = $(async () => {
     if (!store.input.trim() || store.streaming) return;
 
-    const userMessage = {
-      role: "user" as const,
+    const userMsg: Message = {
+      role: "user",
       content: store.input,
       timestamp: new Date().toISOString(),
     };
-    store.messages = [...store.messages, userMessage];
+    store.messages = [...store.messages, userMsg];
     store.input = "";
     store.streaming = true;
 
+    const assistantMsg: Message = {
+      role: "assistant",
+      content: "",
+      timestamp: new Date().toISOString(),
+    };
+    store.messages = [...store.messages, assistantMsg];
+    const lastIdx = store.messages.length - 1;
+    const startTime = Date.now();
+    let totalTokens = 0;
+
     try {
-      const res: any = await api.post("/playground/chat", {
-        messages: store.messages.slice(0, -1),
-        model: store.configs[0].model,
-        provider: store.configs[0].provider,
-        temperature: store.configs[0].temperature,
-        maxTokens: store.configs[0].maxTokens,
+      const response = await fetch(`${API_BASE}/playground/stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: store.messages.slice(0, -1),
+          model: store.configs[0].model,
+          provider: store.configs[0].provider,
+          temperature: store.configs[0].temperature,
+          maxTokens: store.configs[0].maxTokens,
+          systemPrompt: store.configs[0].systemPrompt,
+        }),
       });
 
-      store.messages = [...store.messages, {
-        role: "assistant",
-        content: res.response || "No response",
-        timestamp: new Date().toISOString(),
-        tokens: (res.tokens?.prompt || 0) + (res.tokens?.completion || 0),
-        latency: res.latency || 0,
-      }];
-    } catch {
-      store.messages = [...store.messages, {
-        role: "assistant",
-        content: "Error: Failed to get response",
-        timestamp: new Date().toISOString(),
-      }];
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+        throw new Error(err.error || "Stream request failed");
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response body");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith("data:")) continue;
+          const data = trimmed.slice(5).trim();
+          if (data === "[DONE]") break;
+
+          try {
+            const parsed = JSON.parse(data);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) {
+              store.messages[lastIdx].content += delta;
+              totalTokens++;
+            }
+          } catch {
+            continue;
+          }
+        }
+      }
+    } catch (err: any) {
+      if (store.messages[lastIdx].content === "") {
+        store.messages = store.messages.slice(0, -1);
+        store.messages = [...store.messages, {
+          role: "assistant",
+          content: `Error: ${err.message || "Failed to stream response"}. Check your provider connection in the Integrations page.`,
+          timestamp: new Date().toISOString(),
+        }];
+      }
     } finally {
+      store.messages[lastIdx].latency = Date.now() - startTime;
+      store.messages[lastIdx].tokens = totalTokens || Math.ceil(store.messages[lastIdx].content.length / 4);
       store.streaming = false;
     }
   });
@@ -123,7 +176,7 @@ export default component$(() => {
         <div class="shrink-0 px-6 py-4 border-b border-surface-light bg-surface/50 backdrop-blur-sm flex items-center justify-between">
           <div>
             <h1 class="text-lg font-bold tracking-tight text-text">Playground</h1>
-            <p class="text-xs text-text-muted mt-0.5">Test models interactively with live streaming</p>
+            <p class="text-xs text-text-muted mt-0.5">Test models with real SSE streaming — configure provider on the right</p>
           </div>
           <div class="flex items-center gap-2">
             <Button
@@ -164,7 +217,7 @@ export default component$(() => {
               <p class="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
             </ChatMessage>
           ))}
-          {store.streaming && <StreamingIndicator />}
+          {store.streaming && store.messages[store.messages.length - 1]?.content === "" && <StreamingIndicator />}
         </ChatContainer>
 
         <div class="shrink-0 p-4 bg-surface/50 border-t border-surface-light">
