@@ -18,8 +18,8 @@ Be respectful, inclusive, and constructive. We're all here to build something gr
 
 ```bash
 # Clone the repo
-git clone https://github.com/sandikodev/baseten-workspace-manager.git
-cd baseten-workspace-manager
+git clone https://github.com/ainjiner/ai-lab.git
+cd ai-lab
 
 # Install all dependencies
 bun install
@@ -64,9 +64,12 @@ packages/
 apps/
 └── web/                  # @ml-engine/web — Web UI (Qwik + Tailwind)
     └── src/
-        ├── components/   # Reusable Qwik components
-        ├── routes/       # Page routes (dashboard, models, experiments, etc.)
-        └── lib/          # API client, utilities
+        ├── components/   # Reusable Qwik components (31 UI components + Logo)
+        ├── routes/       # 28 page routes (dashboard, models, playground, explorer, marketplace, ...)
+        ├── routes/layout.tsx  # Root layout (sidebar, nav, command palette)
+        └── lib/          # API client, hooks, types, color-maps
+
+src-tauri/                # PLANNED — Tauri desktop shell (waiting for contributor)
 ```
 
 ### Dependency Order
@@ -87,12 +90,21 @@ bun run build:core
 
 ### Making Changes
 
-1. **Find an issue** — Check the [Issues](https://github.com/sandikodev/baseten-workspace-manager/issues) tab
+1. **Find an issue** — Check the [Issues](https://github.com/ainjiner/ai-lab/issues) tab
 2. **Fork the repo** — Create your own fork
 3. **Create a branch** — `git checkout -b feat/your-feature` or `fix/your-fix`
 4. **Make changes** — Follow the code style guide below
 5. **Test your changes** — See Testing section
 6. **Submit a PR** — Open a pull request with a clear description
+
+### Areas We Need Help
+
+- 🖥️ **Tauri Desktop App** — Port Web UI to Tauri for native performance, filesystem access, system tray
+- 🔌 **Provider integration** — Add support for new AI providers
+- 🎨 **Web UI enhancement** — New components, pages, UX improvements
+- 📊 **Analytics visualization** — New cost/token/tracing charts
+- 📖 **Documentation & tutorials**
+- 🧪 **Test coverage**
 
 ### Code Style
 

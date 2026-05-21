@@ -30,7 +30,7 @@ AI Lab is structured as a monorepo with three layers:
 
 ```
 User clicks "Models" page
-  → Qwik useVisibleTask$() calls api.get("/models")
+  → Qwik useTask$() calls api.get("/models")
   → apps/web/src/lib/api.ts sends fetch to http://localhost:4321/api/models
   → packages/api/src/routes/index.ts handler:
       modelCatalog.listModels()
@@ -277,24 +277,19 @@ Static routes before parameterized:
 ### Component Tree
 
 ```
-layout.tsx
+layout.tsx (Tauri-ready desktop shell)
 ├── Logo (sidebar header)
 ├── Sidebar Navigation
-│   ├── Overview → Dashboard, Models
-│   ├── Research → Prompts, Experiments, Evaluations, Compare
-│   ├── Monitoring → Tokens, Cost, Tracing
-│   ├── Orchestration → Orchestration
-│   └── Settings → Integrations, Settings
-└── <Slot /> (page content)
-    ├── Dashboard      → Analytics summary, recent activity, quick actions
-    ├── Models         → Model catalog, search, compare, aliases
-    ├── Experiments    → Experiment list, create, compare
-    ├── Tokens         → Token usage charts
-    ├── Cost           → Cost breakdown, projections, budgets
-    ├── Tracing        → Request logs
-    ├── Settings       → Config targets, preferences
-    ├── Orchestration  → OMO agents, skills
-    └── Integrations   → Provider management
+│   ├── Overview → Dashboard, Models, Playground
+│   ├── Discover → Explorer, Marketplace
+│   ├── Research → Datasets, Experiments, Playbooks, Annotations
+│   ├── Monitoring → Tokens, Cost, Tracing, Alerts, Cache
+│   ├── Development → Orchestration, Agents, Embeddings, Fine-tune
+│   └── Platform → Integrations, API Keys, Teams, Reports, Settings
+├── Command Palette (⌘K)
+├── Error Boundary
+├── Toast Provider
+└── <Slot /> (page content — 28 route pages)
 ```
 
 ### API Client
@@ -321,7 +316,8 @@ export const api = {
 
 - **API keys stored in SQLite** — The database file at `~/.local/share/ml-engine/engine.db` is not encrypted. Use file permissions to restrict access.
 - **CORS limited** — The API only allows requests from the Web UI origin.
-- **No authentication** — This is a local-first tool. Do not expose the API to the public internet.
+- **No authentication** — This is a local-first, desktop-native tool. Do not expose the API to the public internet without additional security.
+- **Planned: Tauri desktop** — Native sandboxing via OS-level application containment.
 - **Config sync writes to ~/.config/** — Always respects the user's home directory. Never writes to system paths.
 
 ---

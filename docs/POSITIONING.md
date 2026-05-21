@@ -2,7 +2,7 @@
 
 ## What is AI Lab?
 
-AI Lab is a **self-hosted, unified ML/LLM Engineering research platform** designed for teams who want complete control over their AI infrastructure. It combines observability, provider management, model catalog, evaluation, cost analytics, and config sync in a single, open-source solution.
+AI Lab is a **local-first, desktop-native ML/LLM Engineering platform** designed for developers who want complete control over their AI infrastructure. It combines observability, provider management, model catalog, evaluation, cost analytics, and config sync in a single, open-source application — runs on your machine, not someone else's server.
 
 ---
 
@@ -30,7 +30,7 @@ Building production LLM applications requires multiple specialized tools:
 
 | Feature | AI Lab | Helicone | Langfuse | LangSmith | W&B | Arize Phoenix |
 |---------|--------|----------|----------|-----------|-----|---------------|
-| **Self-Hosted** | ✅ Full | ✅ Full | ✅ Full | ❌ Cloud | ❌ Cloud | ✅ Full |
+| **Desktop-Native** | ✅ Full | ✅ Full | ✅ Full | ❌ Cloud | ❌ Cloud | ✅ Full |
 | **Open Source** | ✅ MIT | ✅ Apache | ✅ MIT | ❌ Closed | ❌ Closed | ✅ MIT |
 | **LLM Observability** | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
 | **Prompt Playground** | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
@@ -42,11 +42,24 @@ Building production LLM applications requires multiple specialized tools:
 | **Provider Registry** | ✅ 10 providers | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **Config Sync** | ✅ OpenCode-native | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **OMO Orchestration** | ✅ Read agents/skills | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Explorer (AI research portal)** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Marketplace (tool directory)** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **Pricing** | **Free** | $79+/mo | $59+/mo | $39/seat | $50+/mo | Free |
+```
 
 ### Key Differentiators
 
-#### 1. **Unified Platform, Not Point Solution**
+#### 1. **Desktop-Native, Not SaaS**
+
+Unlike LangSmith, Braintrust, and W&B, AI Lab runs on your machine — not in the cloud:
+
+- **No vendor lock-in**: Your data stays on your hardware
+- **No per-seat pricing**: Unlimited users, no licensing costs
+- **Full customization**: Extend and modify to fit your workflow
+- **Planned: Tauri desktop app** — native performance, filesystem access, system tray
+- **Air-gapped capable**: Works offline, no internet required for core features
+
+#### 2. **Unified Platform, Not Point Solution**
 
 ```
 Traditional Stack:
@@ -66,15 +79,6 @@ AI Lab:
                      ↓
              Single source of truth
 ```
-
-#### 2. **Self-Hosted by Default**
-
-Unlike LangSmith, Braintrust, and W&B, AI Lab is designed for self-hosting from day one:
-
-- **No vendor lock-in**: Your data stays on your infrastructure
-- **No per-seat pricing**: Unlimited users, no licensing costs
-- **Full customization**: Extend and modify to fit your workflow
-- **Air-gapped capable**: Works in restricted environments
 
 #### 3. **Model Comparison Built-In**
 
@@ -244,7 +248,7 @@ AI Lab is the only platform that treats [OpenCode](https://opencode.ai) as a fir
 
 ### Choose AI Lab if:
 
-- ✅ You want **self-hosted** infrastructure
+- ✅ You want **local-first, desktop-native** tools (planned: Tauri app)
 - ✅ You need **unified** observability + provider management
 - ✅ You want **model comparison** built-in
 - ✅ You're doing **ML/LLM research** (not just production monitoring)
@@ -287,7 +291,7 @@ AI Lab is the only platform that treats [OpenCode](https://opencode.ai) as a fir
 
 ## Roadmap
 
-### Phase 1: Foundation (Complete)
+### Phase 1: Foundation (Complete) ✅
 - [x] Web UI with QwikJS + Tailwind CSS v4
 - [x] Dashboard, Models, Tokens, Cost, Tracing
 - [x] Provider Registry (10 providers)
@@ -297,26 +301,47 @@ AI Lab is the only platform that treats [OpenCode](https://opencode.ai) as a fir
 - [x] Orchestration (OMO agents + skills)
 - [x] Export/Import, Env Detection
 - [x] REST API (65+ endpoints)
+- [x] Design System (31 UI components)
+- [x] Explorer (AI resource portal — 7 categories, 50+ curated links)
+- [x] Marketplace (tool directory — 7 categories, 40+ curated tools)
+- [x] 28 route pages with skeleton loaders, error handling
 
-### Phase 2: RAG/CAG Support
+### Phase 2: Streaming & Desktop
+- [ ] Playground real SSE streaming
+- [ ] Prompts template CRUD
+- [ ] Tauri desktop app (native performance, filesystem, system tray)
+
+### Phase 3: Research Graph & Talent
+- [ ] Live Explorer (Arxiv + HuggingFace Daily Papers dynamic feeds)
+- [ ] Paper indexer + citation graph (Semantic Scholar API)
+- [ ] Engineer talent profiles (auto-generated from experiments)
+- [ ] Paper → implementation linking + verification
+
+### Phase 4: RAG/CAG Support
 - [ ] Document chunking & embedding
 - [ ] Retrieval evaluation
 - [ ] Context window analysis
 - [ ] RAG vs CAG recommendations
 
-### Phase 3: Advanced Evaluation
+### Phase 5: Advanced Evaluation
 - [ ] LLM-as-judge evaluators
 - [ ] Custom scorer framework
 - [ ] Regression detection
 - [ ] A/B testing for prompts
 
-### Phase 4: Fine-tuning
+### Phase 6: Connection Engine
+- [ ] Skill ↔ Paper matching (vector search)
+- [ ] Skill ↔ Job matching
+- [ ] Researcher ↔ Engineer connection
+- [ ] Reputation system
+
+### Phase 7: Fine-tuning
 - [ ] Dataset curation from traces
 - [ ] Training data export
 - [ ] Model fine-tuning integration
 - [ ] LoRA/QLoRA support
 
-### Phase 5: Agents
+### Phase 8: Agents
 - [ ] Agent tracing & debugging
 - [ ] Tool call visualization
 - [ ] Multi-agent orchestration
@@ -338,4 +363,4 @@ bun run dev:web    # Start UI at :5173
 
 ## License
 
-MIT — Free forever, self-hosted, no restrictions.
+MIT — Free forever, local-first, no restrictions.

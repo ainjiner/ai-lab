@@ -19,7 +19,7 @@ baseten-workspace-manager/
 
 ```bash
 # Clone
-git clone https://github.com/sandikodev/baseten-workspace-manager.git
+git clone https://github.com/ainjiner/ai-lab.git
 cd baseten-workspace-manager
 
 # Install

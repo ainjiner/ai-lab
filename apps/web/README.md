@@ -8,13 +8,31 @@ The AI Lab Web UI is a [Qwik](https://qwik.dev/) application providing a graphic
 |-------|-------------|
 | `/` | Dashboard — analytics summary, recent activity |
 | `/models` | Model catalog — list, search, compare, aliases |
+| `/playground` | Interactive chat playground — test prompts, compare models |
+| `/explorer` | AI research portal — 7 categories, 50+ curated community links |
+| `/marketplace` | AI tool directory — 7 categories, 40+ curated tools |
 | `/experiments` | Experiment tracking — create, list, compare results |
+| `/prompts` | Prompt library — browse and manage prompt templates |
+| `/evaluations` | Evaluation — scoring, benchmark results |
+| `/compare` | Model comparison matrix |
 | `/tokens` | Token usage charts |
 | `/cost` | Cost analysis — breakdown, projections, budgets |
 | `/tracing` | Request logs — timestamp, provider, model, tokens, cost, latency |
+| `/alerts` | Alert management — budget alerts, usage notifications |
+| `/cache` | Cache monitoring — hit rates, storage |
 | `/settings` | Platform settings and config targets |
 | `/integrations` | Provider management — add, test, scan |
 | `/orchestration` | OMO agents and skills viewer |
+| `/agents` | Agent management — CRUD, configuration |
+| `/datasets` | Dataset management — create, import, export |
+| `/embeddings` | Embeddings — vector store viewer |
+| `/fine-tuning` | Fine-tuning jobs — list, monitor |
+| `/playbooks` | Playbooks — step-by-step ML workflows |
+| `/annotations` | Annotations viewer |
+| `/api-keys` | API key management |
+| `/teams` | Team management |
+| `/reports` | Reports and analytics export |
+| `/404` | Custom not-found page |
 
 ## Prerequisites
 

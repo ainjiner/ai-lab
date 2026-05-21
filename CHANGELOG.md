@@ -6,7 +6,7 @@ All notable changes to the **AI Lab** platform will be documented in this file.
 
 ## [0.1.0] — 2026-05-17 (First Stable Release)
 
-This is the first official stable release of **AI Lab** (previously `ML Engine`) — a self-hosted, local-first ML/LLM engineering platform. It features complete provider registries, automatic model scanning, instant AI editor config synchronization, interactive prompt experiments, detailed spending cost/token observabilities, and full OMO/Obra agent switchers.
+This is the first official stable release of **AI Lab** (previously `ML Engine`) — a local-first, desktop-native ML/LLM engineering platform. It features complete provider registries, automatic model scanning, instant AI editor config synchronization, interactive prompt experiments, detailed spending cost/token observabilities, and full OMO/Obra agent switchers.
 
 ### Added
 

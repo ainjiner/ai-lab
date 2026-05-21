@@ -81,4 +81,4 @@ const result = await generateText({
 
 ## License
 
-[MIT](https://github.com/sandikodev/baseten-workspace-manager/blob/main/LICENSE) — Same as upstream.
+[MIT](https://github.com/ainjiner/ai-lab/blob/main/LICENSE) — Same as upstream.

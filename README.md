@@ -22,7 +22,7 @@
 
 ---
 
-> **AI Lab** is a unified, self-hosted ML/LLM Engineering platform — part observability, part gateway, part model catalog, and part cost analytics — designed from day one for developers who use [OpenCode](https://opencode.ai) as their AI coding companion. Manage 10+ providers, discover 100+ models, track experiments, sync config in one command, and never context-switch between tools again.
+> **AI Lab** is a unified, local-first ML/LLM Engineering platform — part observability, part gateway, part model catalog, and part cost analytics — designed from day one for developers who use [OpenCode](https://opencode.ai) as their AI coding companion. Runs on your machine (planned: Tauri desktop app). Manage 10+ providers, discover 100+ models, track experiments, sync config in one command, and never context-switch between tools again.
 
 ---
 
@@ -37,7 +37,7 @@ AI Lab solves this with one premise: **the platform should adapt to your workflo
 | Fragmented observability | Unified dashboard — tokens, cost, latency, traces in one view |
 | Model vendor lock-in | Registry for 10+ providers, switch models in seconds |
 | Cost overruns | Real-time tracking + projections + budget alerts |
-| Tool sprawl | One self-hosted instance replaces 5+ tools |
+| Tool sprawl | One local-first instance replaces 5+ tools |
 | Config sync overhead | `config sync opencode` bridges your AI editor in one command |
 | Per-seat licensing | **Free. Unlimited users. Self-hosted.** |
 
@@ -480,4 +480,4 @@ AI Lab is built and maintained by [Ainjiner](https://github.com/ainjiner) — an
 
 ## License
 
-[MIT](LICENSE) — Free forever, self-hosted, no restrictions.
+[MIT](LICENSE) — Free forever, local-first, no restrictions.
