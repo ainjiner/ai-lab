@@ -277,6 +277,12 @@ api.get("/analytics/projection", (c) => {
   return c.json({ projection });
 });
 
+api.get("/analytics/daily-trend", (c) => {
+  const days = parseInt(c.req.query("days") || "30");
+  const trend = analyticsTracker.getDailyTrend(days);
+  return c.json({ trend });
+});
+
 api.get("/analytics/export", (c) => {
   const format = (c.req.query("format") as "csv" | "json") || "json";
   const data = analyticsTracker.exportUsage(format);
@@ -489,6 +495,255 @@ api.post("/import-env", async (c) => {
 api.get("/detect-env", (c) => {
   const vars = detectEnvVars();
   return c.json({ variables: vars });
+});
+
+// === Datasets Routes ===
+api.get("/datasets", (c) => {
+  const datasets = [
+    { id: "1", name: "MMLU Benchmark", type: "qa", entries: 14042, version: "1.0.0", tags: ["benchmark", "knowledge"] },
+    { id: "2", name: "HumanEval Python", type: "code", entries: 164, version: "2.1.0", tags: ["code", "python"] },
+    { id: "3", name: "TruthfulQA Set", type: "safety", entries: 817, version: "1.0.0", tags: ["safety", "truthfulness"] },
+    { id: "4", name: "GSM8K Math", type: "reasoning", entries: 8500, version: "1.0.0", tags: ["math", "reasoning"] },
+    { id: "5", name: "Custom QA Set", type: "custom", entries: 256, version: "3.2.0", tags: ["internal", "product"] },
+  ];
+  return c.json({ datasets });
+});
+
+api.post("/datasets", async (c) => {
+  const { name, type, description, tags } = await c.req.json();
+  const dataset = { id: Date.now().toString(), name, type, description, tags: tags || [], entries: 0, version: "1.0.0" };
+  return c.json({ dataset }, 201);
+});
+
+api.get("/datasets/:id", (c) => {
+  return c.json({ dataset: { id: c.req.param("id"), name: "Dataset", entries: 0 } });
+});
+
+api.delete("/datasets/:id", (c) => {
+  return c.json({ success: true });
+});
+
+// === Playground Routes ===
+api.post("/playground/chat", async (c) => {
+  const { messages, model, provider, temperature, maxTokens } = await c.req.json();
+  return c.json({ 
+    response: "This is a simulated response. Connect to actual provider API for real responses.",
+    tokens: { prompt: 100, completion: 50 },
+    latency: 1250
+  });
+});
+
+// === Alerts Routes ===
+api.get("/alerts", (c) => {
+  const alerts = [
+    { id: "1", name: "Monthly Budget Alert", type: "budget", status: "active", threshold: 500, currentValue: 342.50, channels: ["email", "webhook"] },
+    { id: "2", name: "Daily Spend Spike", type: "anomaly", status: "triggered", threshold: 50, currentValue: 78.20, channels: ["email"] },
+    { id: "3", name: "Rate Limit Warning", type: "rate_limit", status: "active", threshold: 80, channels: ["slack"] },
+  ];
+  return c.json({ alerts });
+});
+
+api.post("/alerts", async (c) => {
+  const { name, type, threshold, channels } = await c.req.json();
+  const alert = { id: Date.now().toString(), name, type, threshold, channels, status: "active" };
+  return c.json({ alert }, 201);
+});
+
+api.patch("/alerts/:id", async (c) => {
+  const updates = await c.req.json();
+  return c.json({ alert: { id: c.req.param("id"), ...updates } });
+});
+
+api.delete("/alerts/:id", (c) => {
+  return c.json({ success: true });
+});
+
+api.get("/alerts/history", (c) => {
+  const history = [
+    { id: "h1", alertId: "2", alertName: "Daily Spend Spike", message: "Daily spend exceeded threshold", timestamp: new Date().toISOString(), status: "sent" },
+  ];
+  return c.json({ history });
+});
+
+// === API Keys Routes ===
+api.get("/api-keys", (c) => {
+  const keys = [
+    { id: "1", name: "Production API Key", prefix: "ailab_live_", scope: "admin", status: "active", usageCount: 15420 },
+    { id: "2", name: "Development Key", prefix: "ailab_dev_", scope: "write", status: "active", usageCount: 3250 },
+    { id: "3", name: "Read-Only Dashboard", prefix: "ailab_ro_", scope: "read", status: "active", usageCount: 890 },
+  ];
+  return c.json({ keys });
+});
+
+api.post("/api-keys", async (c) => {
+  const { name, scope, expiresAt } = await c.req.json();
+  const key = `ailab_${scope.substring(0, 2)}_${Math.random().toString(36).substring(2, 15)}`;
+  return c.json({ key: { id: Date.now().toString(), name, prefix: key.substring(0, 12) + "...", scope, status: "active" }, fullKey: key }, 201);
+});
+
+api.delete("/api-keys/:id", (c) => {
+  return c.json({ success: true });
+});
+
+// === Playbooks Routes ===
+api.get("/playbooks", (c) => {
+  const playbooks = [
+    { id: "1", name: "Model Quality Check", type: "evaluation", steps: 5, status: "active", schedule: "0 8 * * *" },
+    { id: "2", name: "Weekly Benchmark Suite", type: "benchmark", steps: 12, status: "running", schedule: "0 6 * * 1" },
+    { id: "3", name: "Provider Comparison", type: "comparison", steps: 8, status: "completed" },
+  ];
+  return c.json({ playbooks });
+});
+
+api.post("/playbooks", async (c) => {
+  const { name, type, steps, schedule } = await c.req.json();
+  const playbook = { id: Date.now().toString(), name, type, steps: steps || [], status: "draft", schedule };
+  return c.json({ playbook }, 201);
+});
+
+api.post("/playbooks/:id/run", (c) => {
+  return c.json({ success: true, status: "running" });
+});
+
+// === Annotations Routes ===
+api.get("/annotations", (c) => {
+  const annotations = [
+    { id: "1", experimentId: "exp_001", model: "gpt-4o", rating: 5, label: "good", annotator: "alice" },
+    { id: "2", experimentId: "exp_001", model: "claude-3.5-sonnet", rating: 4, label: "good", annotator: "bob" },
+    { id: "3", experimentId: "exp_002", model: "gpt-4o", rating: 3, label: "needs_review", annotator: "alice" },
+  ];
+  return c.json({ annotations });
+});
+
+api.post("/annotations", async (c) => {
+  const { experimentId, model, rating, label, correction } = await c.req.json();
+  const annotation = { id: Date.now().toString(), experimentId, model, rating, label, correction, annotator: "user" };
+  return c.json({ annotation }, 201);
+});
+
+// === Cache Analytics Routes ===
+api.get("/cache/stats", (c) => {
+  const stats = [
+    { provider: "anthropic", hitRate: 78, totalRequests: 15420, cacheHits: 12028, cacheMisses: 3392, estimatedSavings: 245.50 },
+    { provider: "openai", hitRate: 65, totalRequests: 8750, cacheHits: 5688, cacheMisses: 3062, estimatedSavings: 125.30 },
+    { provider: "together", hitRate: 42, totalRequests: 3200, cacheHits: 1344, cacheMisses: 1856, estimatedSavings: 45.20 },
+  ];
+  return c.json({ stats });
+});
+
+// === Teams Routes ===
+api.get("/teams", (c) => {
+  const teams = [
+    { id: "1", name: "Engineering", members: 8, role: "owner" },
+    { id: "2", name: "Research", members: 5, role: "admin" },
+    { id: "3", name: "Data Science", members: 4, role: "member" },
+  ];
+  return c.json({ teams });
+});
+
+api.post("/teams", async (c) => {
+  const { name, description } = await c.req.json();
+  const team = { id: Date.now().toString(), name, description, members: 1, role: "owner" };
+  return c.json({ team }, 201);
+});
+
+api.get("/teams/:id/members", (c) => {
+  const members = [
+    { id: "m1", name: "Alice Johnson", email: "alice@example.com", role: "owner", status: "active" },
+    { id: "m2", name: "Bob Smith", email: "bob@example.com", role: "admin", status: "active" },
+  ];
+  return c.json({ members });
+});
+
+api.post("/teams/:id/members", async (c) => {
+  const { email, role } = await c.req.json();
+  return c.json({ member: { id: Date.now().toString(), email, role, status: "pending" } }, 201);
+});
+
+// === Embeddings Routes ===
+api.get("/embeddings/jobs", (c) => {
+  const jobs = [
+    { id: "1", name: "Product Descriptions", model: "text-embedding-3-small", documents: 1250, status: "completed", progress: 100 },
+    { id: "2", name: "Customer Reviews", model: "text-embedding-3-large", documents: 8500, status: "processing", progress: 67 },
+  ];
+  return c.json({ jobs });
+});
+
+api.post("/embeddings/jobs", async (c) => {
+  const { name, model, documents } = await c.req.json();
+  const job = { id: Date.now().toString(), name, model, documents: documents?.length || 0, status: "pending", progress: 0 };
+  return c.json({ job }, 201);
+});
+
+api.post("/embeddings/search", async (c) => {
+  const { query, jobId, limit } = await c.req.json();
+  const results = [
+    { id: "1", text: "Similar document 1", score: 0.92 },
+    { id: "2", text: "Similar document 2", score: 0.87 },
+  ];
+  return c.json({ results });
+});
+
+// === Fine-tuning Routes ===
+api.get("/fine-tuning/jobs", (c) => {
+  const jobs = [
+    { id: "1", name: "Customer Support Bot", provider: "openai", baseModel: "gpt-4o-mini", status: "completed", progress: 100, cost: 45.20 },
+    { id: "2", name: "Code Assistant", provider: "anthropic", baseModel: "claude-3-haiku", status: "running", progress: 45 },
+  ];
+  return c.json({ jobs });
+});
+
+api.post("/fine-tuning/jobs", async (c) => {
+  const { name, provider, baseModel, dataset, epochs } = await c.req.json();
+  const job = { id: Date.now().toString(), name, provider, baseModel, dataset, epochs, status: "queued", progress: 0 };
+  return c.json({ job }, 201);
+});
+
+// === Agents Routes ===
+api.get("/agents/traces", (c) => {
+  const traces = [
+    { id: "1", name: "Research Agent", model: "gpt-4o", status: "completed", steps: 5, tokens: 3250, latency: 12500 },
+    { id: "2", name: "Code Assistant", model: "claude-3.5-sonnet", status: "running", steps: 3, tokens: 1850, latency: 8200 },
+  ];
+  return c.json({ traces });
+});
+
+api.get("/agents/traces/:id", (c) => {
+  const trace = {
+    id: c.req.param("id"),
+    name: "Research Agent",
+    steps: [
+      { step: 1, type: "input", content: "Research quantum computing", duration: 0 },
+      { step: 2, type: "tool_call", tool: "web_search", duration: 1200 },
+      { step: 3, type: "reasoning", duration: 3500 },
+      { step: 4, type: "output", duration: 7800 },
+    ]
+  };
+  return c.json({ trace });
+});
+
+// === Reports Routes ===
+api.get("/reports", (c) => {
+  const reports = [
+    { id: "1", name: "Weekly Cost Summary", type: "digest", status: "sent", schedule: "0 9 * * 1" },
+    { id: "2", name: "Monthly Provider Analysis", type: "scheduled", status: "ready", schedule: "0 9 1 * *" },
+    { id: "3", name: "Q1 Performance Report", type: "custom", status: "sent" },
+  ];
+  return c.json({ reports });
+});
+
+api.post("/reports", async (c) => {
+  const { name, type, schedule, config } = await c.req.json();
+  const report = { id: Date.now().toString(), name, type, schedule, config, status: "draft" };
+  return c.json({ report }, 201);
+});
+
+api.post("/reports/:id/generate", (c) => {
+  return c.json({ success: true, status: "generating" });
+});
+
+api.get("/reports/:id/download", (c) => {
+  return c.json({ downloadUrl: `/reports/${c.req.param("id")}/download/file.pdf` });
 });
 
 export default api;

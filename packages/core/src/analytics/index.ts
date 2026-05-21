@@ -112,6 +112,26 @@ export class AnalyticsTracker {
     };
   }
 
+  getDailyTrend(days: number = 30): Array<{ date: string; totalCost: number; totalTokens: number; requestCount: number }> {
+    const rows = this.store.query<any, [number]>(
+      `SELECT DATE(timestamp) as date,
+        COALESCE(SUM(cost_total), 0) as total_cost,
+        COALESCE(SUM(tokens_prompt + tokens_completion), 0) as total_tokens,
+        COUNT(*) as request_count
+       FROM usage_records
+       WHERE timestamp >= datetime('now', ?)
+       GROUP BY DATE(timestamp)
+       ORDER BY date ASC`
+    ).all(-days);
+
+    return rows.map((r: any) => ({
+      date: r.date,
+      totalCost: r.total_cost,
+      totalTokens: r.total_tokens,
+      requestCount: r.request_count,
+    }));
+  }
+
   getCostProjection(days: number = 30): { dailyAvg: number; projected: number; currentTotal: number } {
     const current = this.getSummary("monthly");
     const daysRow = this.store.query<{ days_with_data: number }, []>(
