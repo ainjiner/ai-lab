@@ -324,14 +324,14 @@ Deploy: Docker Compose di VPS, atau Railway/Render untuk simplicity
 
 | ID | Item | Dependensi |
 |----|------|------------|
-| F1.1 | Edge cloud infra (1 VPS, PostgreSQL, Redis) | — |
-| F1.2 | Arxiv RSS crawler (cron, simpan ke DB) | F1.1 |
-| F1.3 | HuggingFace Daily Papers API → auto-populate Explorer | F1.1 |
-| F1.4 | Semantic Scholar citation graph sync | F1.1 |
-| F1.5 | Explorer UI: dynamic (API-driven, bukan static data) | F1.2, F1.3 |
-| F1.6 | Paper detail page (`/papers/:id`) | F1.2 |
-| F1.7 | "Implement Paper" button → linked ke experiment tracker | F0.5 |
-| F1.8 | Public API: `/api/v1/papers`, `/api/v1/papers/:id` | F1.2-F1.4 |
+| F1.1 | Edge cloud infra (1 VPS, PostgreSQL, Redis) | Planned |
+| F1.2 | Arxiv RSS crawler (cron, simpan ke DB) | ✅ apps/lens |
+| F1.3 | HuggingFace Daily Papers API → auto-populate Explorer | ✅ apps/lens |
+| F1.4 | Semantic Scholar citation graph sync | Planned |
+| F1.5 | Explorer UI: dynamic (API-driven, bukan static data) | ✅ Done |
+| F1.6 | Paper detail page (`/papers/:id`) | Planned |
+| F1.7 | "Implement Paper" button → linked ke experiment tracker | Planned |
+| F1.8 | Public API: `/api/v1/papers`, `/api/v1/papers/:id` | ✅ Lens API |
 
 ### Fase 2: Talent Profile + Portfolio Builder (Q4 2026)
 
