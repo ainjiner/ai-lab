@@ -314,8 +314,8 @@ Deploy: Docker Compose di VPS, atau Railway/Render untuk simplicity
 | F0.11 | Skeleton loaders + error handling di semua page | ✅ Done | P0 |
 | F0.12 | Explorer page (static curated) | ✅ Done | P1 |
 | F0.13 | Marketplace page (static curated) | ✅ Done | P1 |
-| F0.14 | Playground — real SSE streaming | ⬜ Todo | P0 |
-| F0.15 | Prompts — template CRUD | ⬜ Todo | P1 |
+| F0.14 | Playground — real SSE streaming | ✅ Done | P0 |
+| F0.15 | Prompts — template CRUD | ✅ Done | P1 |
 | F0.16 | Evaluation — scoring, regression detection | ⬜ Todo | P2 |
 
 ### Fase 1: Live Explorer + Paper Indexer (Q3 2026)
