@@ -4,7 +4,7 @@ import { join } from "path";
 import {
   providerRegistry, modelCatalog, configManager,
   experimentTracker, analyticsTracker, budgetManager, orchestrationManager,
-  importFromEnv, detectEnvVars, exportAll, importAll,
+  importFromEnv, detectEnvVars, exportAll, importAll, getStore,
 } from "@ml-engine/core";
 
 const api = new Hono();
@@ -601,6 +601,77 @@ api.post("/playground/stream", async (c) => {
   } catch (err: any) {
     return c.json({ error: `Failed to connect to provider: ${err.message}` }, 502);
   }
+});
+
+// === Prompt Templates Routes ===
+api.get("/prompts", (c) => {
+  const store = getStore();
+  const rows = store.query<any, []>(
+    "SELECT * FROM prompt_templates ORDER BY updated_at DESC"
+  ).all();
+  return c.json({ templates: rows });
+});
+
+api.get("/prompts/:id", (c) => {
+  const store = getStore();
+  const row = store.query<any, [string]>(
+    "SELECT * FROM prompt_templates WHERE id = ?"
+  ).get(c.req.param("id"));
+  if (!row) return c.json({ error: "Template not found" }, 404);
+  return c.json({ template: row });
+});
+
+api.post("/prompts", async (c) => {
+  const { name, description, template, variables, tags } = await c.req.json();
+  if (!name || !template) return c.json({ error: "Name and template are required" }, 400);
+
+  const id = crypto.randomUUID();
+  const store = getStore();
+  store.query<any, [string, string, string, string, string, string]>(
+    `INSERT INTO prompt_templates (id, name, description, template, variables, tags)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(id, name, description || "", template, JSON.stringify(variables || []), JSON.stringify(tags || []));
+
+  const created = store.query<any, [string]>(
+    "SELECT * FROM prompt_templates WHERE id = ?"
+  ).get(id);
+  return c.json({ template: created }, 201);
+});
+
+api.patch("/prompts/:id", async (c) => {
+  const store = getStore();
+  const existing = store.query<any, [string]>(
+    "SELECT id FROM prompt_templates WHERE id = ?"
+  ).get(c.req.param("id"));
+  if (!existing) return c.json({ error: "Template not found" }, 404);
+
+  const { name, description, template, variables, tags } = await c.req.json();
+  const pairs: string[] = [];
+  const vals: any[] = [];
+
+  if (name !== undefined) { pairs.push("name = ?"); vals.push(name); }
+  if (description !== undefined) { pairs.push("description = ?"); vals.push(description); }
+  if (template !== undefined) { pairs.push("template = ?"); vals.push(template); }
+  if (variables !== undefined) { pairs.push("variables = ?"); vals.push(JSON.stringify(variables)); }
+  if (tags !== undefined) { pairs.push("tags = ?"); vals.push(JSON.stringify(tags)); }
+  pairs.push("updated_at = datetime('now')");
+  vals.push(c.req.param("id"));
+
+  store.query(`UPDATE prompt_templates SET ${pairs.join(", ")} WHERE id = ?`).run(...vals);
+  const updated = store.query<any, [string]>(
+    "SELECT * FROM prompt_templates WHERE id = ?"
+  ).get(c.req.param("id"));
+  return c.json({ template: updated });
+});
+
+api.delete("/prompts/:id", (c) => {
+  const store = getStore();
+  const existing = store.query<any, [string]>(
+    "SELECT id FROM prompt_templates WHERE id = ?"
+  ).get(c.req.param("id"));
+  if (!existing) return c.json({ error: "Template not found" }, 404);
+  store.query("DELETE FROM prompt_templates WHERE id = ?").run(c.req.param("id"));
+  return c.json({ success: true });
 });
 
 // === Alerts Routes ===
