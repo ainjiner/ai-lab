@@ -171,6 +171,24 @@ export class Store {
         created_at TEXT DEFAULT (datetime('now'))
       );
       CREATE INDEX IF NOT EXISTS idx_results_experiment ON experiment_results(experiment_id);`,
+
+      // v4: evaluations table
+      `CREATE TABLE IF NOT EXISTS evaluations (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        questions TEXT NOT NULL,
+        results TEXT DEFAULT '[]',
+        provider_id TEXT,
+        model_id TEXT,
+        status TEXT DEFAULT 'draft',
+        avg_score REAL,
+        total_tokens INTEGER DEFAULT 0,
+        tags TEXT DEFAULT '[]',
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_evaluations_status ON evaluations(status);`,
     ];
 
     for (let i = version; i < migrations.length; i++) {

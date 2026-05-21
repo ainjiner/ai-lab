@@ -887,4 +887,147 @@ api.get("/reports/:id/download", (c) => {
   return c.json({ downloadUrl: `/reports/${c.req.param("id")}/download/file.pdf` });
 });
 
+// === Evaluations Routes ===
+api.get("/evaluations", (c) => {
+  const store = getStore();
+  const rows = store.query<any, []>(
+    "SELECT * FROM evaluations ORDER BY updated_at DESC"
+  ).all();
+  return c.json({ evaluations: rows });
+});
+
+api.get("/evaluations/:id", (c) => {
+  const store = getStore();
+  const row = store.query<any, [string]>(
+    "SELECT * FROM evaluations WHERE id = ?"
+  ).get(c.req.param("id"));
+  if (!row) return c.json({ error: "Not found" }, 404);
+  return c.json({ evaluation: row });
+});
+
+api.post("/evaluations", async (c) => {
+  const { name, description, questions, providerId, modelId, tags } = await c.req.json();
+  if (!name || !questions || !Array.isArray(questions) || questions.length === 0) {
+    return c.json({ error: "Name and questions array are required" }, 400);
+  }
+
+  const id = crypto.randomUUID();
+  const store = getStore();
+  store.query<any, [string, string, string, string, string, string, string, string]>(
+    `INSERT INTO evaluations (id, name, description, questions, provider_id, model_id, tags)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(id, name, description || "", JSON.stringify(questions), providerId || "", modelId || "", JSON.stringify(tags || []));
+
+  const created = store.query<any, [string]>(
+    "SELECT * FROM evaluations WHERE id = ?"
+  ).get(id);
+  return c.json({ evaluation: created }, 201);
+});
+
+api.delete("/evaluations/:id", (c) => {
+  const store = getStore();
+  store.query("DELETE FROM evaluations WHERE id = ?").run(c.req.param("id"));
+  return c.json({ success: true });
+});
+
+api.post("/evaluations/:id/run", async (c) => {
+  const store = getStore();
+  const eval_ = store.query<any, [string]>(
+    "SELECT * FROM evaluations WHERE id = ?"
+  ).get(c.req.param("id"));
+  if (!eval_) return c.json({ error: "Not found" }, 404);
+
+  const { providerId, modelId } = await c.req.json().catch(() => ({}));
+  const pId = providerId || eval_.provider_id;
+  const mId = modelId || eval_.model_id;
+
+  if (!pId || !mId) {
+    return c.json({ error: "providerId and modelId are required to run evaluation" }, 400);
+  }
+
+  const instances = providerRegistry.listInstances();
+  const instance = instances.find(i => i.providerId === pId && i.enabled !== false);
+  if (!instance) return c.json({ error: `No enabled instance for provider "${pId}"` }, 404);
+
+  const prov = providerRegistry.getProvider(pId);
+  const baseUrl = instance.baseUrl || prov?.baseUrl || "";
+
+  let questions: Array<{ prompt: string; expected: string }>;
+  try { questions = JSON.parse(eval_.questions); } catch {
+    return c.json({ error: "Invalid questions format" }, 400);
+  }
+
+  const results: Array<{ prompt: string; expected: string; actual: string; score: number; tokens: number; latency: number }> = [];
+  let totalScore = 0;
+  let totalTokens = 0;
+
+  for (const q of questions) {
+    const start = Date.now();
+    try {
+      const res = await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": prov?.authMethod !== "none" ? `Bearer ${instance.apiKey}` : "",
+        },
+        body: JSON.stringify({
+          model: mId,
+          messages: [{ role: "user", content: q.prompt }],
+          max_tokens: 512,
+          stream: false,
+        }),
+      });
+
+      if (!res.ok) {
+        results.push({ prompt: q.prompt, expected: q.expected, actual: `API error: ${res.status}`, score: 0, tokens: 0, latency: Date.now() - start });
+        continue;
+      }
+
+      const data = await res.json() as any;
+      const actual = data.choices?.[0]?.message?.content || "";
+      const promptTokens = data.usage?.prompt_tokens || 0;
+      const completionTokens = data.usage?.completion_tokens || 0;
+      const tokens = promptTokens + completionTokens;
+      totalTokens += tokens;
+
+      const score = scoreResponse(q.expected, actual);
+
+      results.push({ prompt: q.prompt, expected: q.expected, actual, score, tokens, latency: Date.now() - start });
+      totalScore += score;
+    } catch (err: any) {
+      results.push({ prompt: q.prompt, expected: q.expected, actual: `Error: ${err.message}`, score: 0, tokens: 0, latency: Date.now() - start });
+    }
+  }
+
+  const avgScore = questions.length > 0 ? Math.round((totalScore / questions.length) * 100) / 100 : 0;
+
+  store.query(
+    `UPDATE evaluations SET results = ?, avg_score = ?, total_tokens = ?, status = 'completed', updated_at = datetime('now') WHERE id = ?`
+  ).run(JSON.stringify(results), avgScore, totalTokens, c.req.param("id"));
+
+  return c.json({ evaluation: { ...eval_, results: JSON.stringify(results), avg_score: avgScore, status: "completed" }, results });
+});
+
+function scoreResponse(expected: string, actual: string): number {
+  if (!expected || !actual) return 0;
+  const expLower = expected.toLowerCase().trim();
+  const actLower = actual.toLowerCase().trim();
+
+  if (expLower === actLower) return 1;
+
+  const expWords = new Set(expLower.split(/\s+/).filter(w => w.length > 2));
+  const actWords = new Set(actLower.split(/\s+/).filter(w => w.length > 2));
+
+  if (expWords.size === 0) return actLower.includes(expLower) ? 0.5 : 0;
+
+  let intersection = 0;
+  for (const w of expWords) { if (actWords.has(w)) intersection++; }
+
+  const precision = intersection / expWords.size;
+  const recall = intersection / (actWords.size || 1);
+  const f1 = precision + recall > 0 ? (2 * precision * recall) / (precision + recall) : 0;
+
+  return Math.round(f1 * 100) / 100;
+}
+
 export default api;
