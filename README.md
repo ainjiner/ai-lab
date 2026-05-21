@@ -16,7 +16,7 @@
 **One platform. Ten providers. Zero friction.**
 *The missing engineering layer for AI developers who live in OpenCode.*
 
-[**Live Demo →**](https://ainjiner.github.io) · [**Docs →**](https://github.com/ainjiner/ai-lab/tree/main/docs) · [**Philosophy →**](./PHILOSOPHY.md) · [**Support the project →**](https://github.com/sponsors/ainjiner)
+[**Live Demo →**](https://ainjiner.github.io) · [**Docs →**](https://github.com/ainjiner/ai-lab/tree/main/docs) · [**Philosophy →**](./PHILOSOPHY.md) · [**Blueprint →**](./BLUEPRINT.md) · [**Support →**](https://github.com/sponsors/ainjiner)
 
 </div>
 
