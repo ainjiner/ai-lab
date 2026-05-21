@@ -4,6 +4,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Input } from "~/components/ui/input";
+import { EmptyState } from "~/components/ui/empty-state";
+import { useToast } from "~/components/ui/toast";
 import { api, PROVIDER_FEATURES } from "~/lib/api";
 
 interface Provider { id: string; name: string; type: string; baseUrl: string; features: Record<string, boolean>; description?: string; }
@@ -13,7 +15,6 @@ interface PageState {
   providers: Provider[];
   instances: Instance[];
   loading: boolean;
-  toast: { msg: string; kind: "ok" | "err" } | null;
   modal: "add" | "configure" | null;
   form: { providerId: string; name: string; apiKey: string; baseUrl: string; saving: boolean };
   active: Instance | null;
@@ -24,7 +25,6 @@ export default component$(() => {
   const loc = useLocation();
   const state = useStore<PageState>({
     providers: [], instances: [], loading: true,
-    toast: null,
     modal: null,
     form: { providerId: "", name: "", apiKey: "", baseUrl: "", saving: false },
     active: null,
@@ -52,22 +52,13 @@ export default component$(() => {
     }
   });
 
-  const showToast = $((msg: string, kind: "ok" | "err" = "ok") => {
-    state.toast = { msg, kind };
-    setTimeout(() => { state.toast = null; }, 3500);
-  });
+  const toast = useToast();
 
   const getInstance = (pid: string) => state.instances.find(i => i.providerId === pid);
   const maskKey = (key?: string) => key ? `${key.slice(0, 8)}...${key.slice(-4)}` : "—";
 
   return (
     <div class="space-y-8">
-
-      {state.toast && (
-        <div class={`fixed top-4 right-4 z-50 rounded-lg px-4 py-3 text-sm font-medium shadow-lg transition-all ${state.toast.kind === "ok" ? "bg-emerald-500/90 text-white" : "bg-red-500/90 text-white"}`}>
-          {state.toast.msg}
-        </div>
-      )}
 
       {state.modal === "add" && (
         <div class="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick$={(e) => { if ((e.target as HTMLElement).classList.contains("fixed")) state.modal = null; }}>
@@ -137,9 +128,9 @@ export default component$(() => {
                     state.modal = null;
                     state.form = { providerId: "", name: "", apiKey: "", baseUrl: "", saving: false };
                     await reload();
-                    await showToast("Provider added successfully");
+                    toast.success("Provider added successfully");
                   } catch (err) {
-                    await showToast(String(err), "err");
+                    toast.error(String(err));
                   } finally {
                     state.form.saving = false;
                   }
@@ -179,12 +170,12 @@ export default component$(() => {
                   try {
                     const res = await api.post<{ result: { success: boolean; latency?: number; error?: string } }>(`/providers/instances/${state.active.id}/test`);
                     if (res.result.success) {
-                      await showToast(`Connected — ${res.result.latency}ms latency`);
+                      toast.success(`Connected — ${res.result.latency}ms latency`);
                     } else {
-                      await showToast(res.result.error || "Connection failed", "err");
+                      toast.error(res.result.error || "Connection failed");
                     }
                   } catch (err) {
-                    await showToast(String(err), "err");
+                    toast.error(String(err));
                   } finally {
                     state.actionLoading = null;
                   }
@@ -202,15 +193,15 @@ export default component$(() => {
                   try {
                     const res = await api.post<{ result: { models: unknown[]; error?: string } }>(`/providers/instances/${state.active.id}/scan`);
                     if (res.result.error) {
-                      await showToast(res.result.error, "err");
+                      toast.error(res.result.error);
                     } else {
                       await reload();
                       const updated = state.instances.find(i => i.id === state.active?.id);
                       if (updated) state.active = updated;
-                      await showToast(`Scan complete — ${res.result.models.length} models found`);
+                      toast.success(`Scan complete — ${res.result.models.length} models found`);
                     }
                   } catch (err) {
-                    await showToast(String(err), "err");
+                    toast.error(String(err));
                   } finally {
                     state.actionLoading = null;
                   }
@@ -230,9 +221,9 @@ export default component$(() => {
                     await reload();
                     const updated = state.instances.find(i => i.id === state.active?.id);
                     if (updated) state.active = updated;
-                    await showToast(`Instance ${updated?.enabled ? "enabled" : "disabled"}`);
+                    toast.success(`Instance ${updated?.enabled ? "enabled" : "disabled"}`);
                   } catch (err) {
-                    await showToast(String(err), "err");
+                    toast.error(String(err));
                   } finally {
                     state.actionLoading = null;
                   }
@@ -254,9 +245,9 @@ export default component$(() => {
                     state.modal = null;
                     state.active = null;
                     await reload();
-                    await showToast("Instance removed");
+                    toast.success("Instance removed");
                   } catch (err) {
-                    await showToast(String(err), "err");
+                    toast.error(String(err));
                   } finally {
                     state.actionLoading = null;
                   }
@@ -284,6 +275,14 @@ export default component$(() => {
 
       {state.loading ? (
         <p class="text-text-muted text-center py-8">Loading providers...</p>
+      ) : state.providers.length === 0 ? (
+        <EmptyState
+          icon="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10.5v.5a1 1 0 001 1h3a1 1 0 001-1v-.5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10.5v-.5"
+          title="No Providers Configured"
+          description="Add your first LLM provider to get started with AI Lab."
+        >
+          <Button onClick$={() => { state.modal = "add"; }}>Add Provider</Button>
+        </EmptyState>
       ) : (
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {state.providers.map((p) => {

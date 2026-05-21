@@ -3,28 +3,65 @@ import type { DocumentHead } from "@builder.io/qwik-city";
 import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "~/components/ui/table";
 import { Button } from "~/components/ui/button";
+import { Select, Tooltip } from "~/components/ui";
+import { PageHeader } from "~/components/ui/page-header";
+import { StatGrid, StatCard } from "~/components/ui/stat-card";
+import { PeriodSelector, SearchInput } from "~/components/ui/search-filter";
+import { EmptyState } from "~/components/ui/empty-state";
+import { Skeleton } from "~/components/ui/skeleton";
+import { Pagination } from "~/components/ui/pagination";
+import { timeAgo, formatExact } from "~/lib/time";
 import { api } from "~/lib/api";
 import { useToast } from "~/components/ui/toast";
+
+interface TraceRecord {
+  id: string;
+  timestamp: string;
+  provider: string;
+  model: string;
+  tokens_prompt: number;
+  tokens_completion: number;
+  cost_total: number;
+  latency_ms: number;
+  experiment_id?: string;
+}
+
+interface ExportAPIResponse {
+  data: string | TraceRecord[];
+}
+
+interface TracingState {
+  data: string | TraceRecord[];
+  loading: boolean;
+  period: "all" | "daily" | "weekly" | "monthly";
+  selectedProvider: string;
+  selectedModel: string;
+  searchQuery: string;
+  page: number;
+  expandedRowIds: string[];
+}
 
 export default component$(() => {
   const toast = useToast();
 
-  const state = useStore<any>({
+  const state = useStore<TracingState>({
     data: "[]",
     loading: true,
     period: "all",
     selectedProvider: "all",
     selectedModel: "all",
+    searchQuery: "",
     page: 1,
     expandedRowIds: [],
   });
 
   const loadData = $(async () => {
     try {
-      const res = await api.get<any>("/analytics/export?format=json");
+      const res = await api.get<ExportAPIResponse>("/analytics/export?format=json");
       state.data = typeof res.data === "string" ? res.data : JSON.stringify(res.data || res || []);
-    } catch (e) {
-      console.error("Failed to load trace logs:", e);
+    } catch (err) {
+      console.error("Failed to load trace logs:", err);
+      toast.error("Failed to load tracing data");
     }
   });
 
@@ -32,8 +69,9 @@ export default component$(() => {
     state.loading = true;
     try {
       await loadData();
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load tracing data");
     } finally {
       state.loading = false;
     }
@@ -52,12 +90,12 @@ export default component$(() => {
     }
   })();
 
-  const uniqueProviders = Array.from(new Set(allRecords.map((r: any) => r.provider))).filter(Boolean) as string[];
-  const uniqueModels = Array.from(new Set(allRecords.map((r: any) => r.model))).filter(Boolean) as string[];
+  const uniqueProviders = Array.from(new Set(allRecords.map((r: TraceRecord) => r.provider))).filter(Boolean) as string[];
+  const uniqueModels = Array.from(new Set(allRecords.map((r: TraceRecord) => r.model))).filter(Boolean) as string[];
 
   const filteredRecords = (() => {
     const now = Date.now();
-    return allRecords.filter((r: any) => {
+    return allRecords.filter((r: TraceRecord) => {
       if (state.period !== "all") {
         const time = parseDate(r.timestamp);
         const diffMs = now - time;
@@ -74,6 +112,13 @@ export default component$(() => {
         return false;
       }
       
+      if (state.searchQuery) {
+        const query = state.searchQuery.toLowerCase();
+        if (!r.model.toLowerCase().includes(query) && !r.provider.toLowerCase().includes(query)) {
+          return false;
+        }
+      }
+      
       return true;
     });
   })();
@@ -87,8 +132,10 @@ export default component$(() => {
 
   const exportJSON = $(async () => {
     try {
-      const res = await api.get<any>("/analytics/export?format=json");
-      const jsonText = typeof res === "string" ? res : JSON.stringify(res.data ? JSON.parse(res.data) : res, null, 2);
+      const res = await api.get<ExportAPIResponse>("/analytics/export?format=json");
+      const jsonText = typeof res === "string" 
+        ? res 
+        : JSON.stringify(typeof res.data === "string" ? JSON.parse(res.data) : res.data, null, 2);
       
       const blob = new Blob([jsonText], { type: "application/json;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
@@ -108,7 +155,7 @@ export default component$(() => {
 
   const exportCSV = $(async () => {
     try {
-      const res = await api.get<any>("/analytics/export?format=csv");
+      const res = await api.get<string | { data: string }>("/analytics/export?format=csv");
       const csvText = typeof res === "string" ? res : (res && res.data) || "";
       
       if (!csvText) {
@@ -134,63 +181,77 @@ export default component$(() => {
 
   return (
     <div class="space-y-8">
-      <div>
-        <h1 class="text-3xl font-bold tracking-tight">Tracing</h1>
-        <p class="text-text-muted">Request and response logs</p>
-      </div>
+      <PageHeader title="Tracing" description="Request and response logs">
+        <div class="flex items-center gap-3">
+          <PeriodSelector
+            periods={["all", "daily", "weekly", "monthly"]}
+            selected={state.period}
+            onChange={$((p: string) => { state.period = p as "all" | "daily" | "weekly" | "monthly"; state.page = 1; })}
+          />
+        </div>
+      </PageHeader>
 
       <div class="grid gap-4 md:grid-cols-3">
         <div class="space-y-1.5">
-          <label class="text-xs font-semibold text-text-muted">Period</label>
-          <select
-            value={state.period}
-            onChange$={(e: any) => {
-              state.period = e.target.value;
-              state.page = 1;
-            }}
-            class="flex h-10 w-full rounded-lg border border-surface-light bg-surface px-3 py-2 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary capitalize"
-          >
-            <option value="all">All Time</option>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-          </select>
-        </div>
-
-        <div class="space-y-1.5">
-          <label class="text-xs font-semibold text-text-muted">Provider</label>
-          <select
+          <label class="text-xs font-medium text-text-muted">Provider</label>
+          <Select
             value={state.selectedProvider}
-            onChange$={(e: any) => {
-              state.selectedProvider = e.target.value;
+            onChange$={(e: Event) => {
+              state.selectedProvider = (e.target as HTMLSelectElement).value;
               state.page = 1;
             }}
-            class="flex h-10 w-full rounded-lg border border-surface-light bg-surface px-3 py-2 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary capitalize"
+            class="capitalize"
           >
             <option value="all">All Providers</option>
             {uniqueProviders.map((p: string) => (
               <option key={p} value={p}>{p}</option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div class="space-y-1.5">
-          <label class="text-xs font-semibold text-text-muted">Model</label>
-          <select
+          <label class="text-xs font-medium text-text-muted">Model</label>
+          <Select
             value={state.selectedModel}
-            onChange$={(e: any) => {
-              state.selectedModel = e.target.value;
+            onChange$={(e: Event) => {
+              state.selectedModel = (e.target as HTMLSelectElement).value;
               state.page = 1;
             }}
-            class="flex h-10 w-full rounded-lg border border-surface-light bg-surface px-3 py-2 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <option value="all">All Models</option>
             {uniqueModels.map((m: string) => (
               <option key={m} value={m}>{m}</option>
             ))}
-          </select>
+          </Select>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-xs font-medium text-text-muted">Search</label>
+          <SearchInput
+            placeholder="Search by model or provider..."
+            value={state.searchQuery}
+            onInput$={(val: string) => { state.searchQuery = val; state.page = 1; }}
+          />
         </div>
       </div>
+
+      <StatGrid cols={3}>
+        <StatCard
+          value={totalCount}
+          label="Total Logs"
+          valueColor="text-primary tabular-nums"
+        />
+        <StatCard
+          value={totalPages}
+          label="Total Pages"
+          valueColor="text-warning tabular-nums"
+        />
+        <StatCard
+          value={currentPage}
+          label="Current Page"
+          valueColor="text-info tabular-nums"
+        />
+      </StatGrid>
 
       <Card>
         <CardHeader>
@@ -212,9 +273,20 @@ export default component$(() => {
         <CardContent>
           <div class="pt-4">
             {state.loading ? (
-              <p class="text-text-muted text-sm py-4">Loading trace records...</p>
+              <div class="space-y-4 py-2">
+                <div class="flex items-center space-x-4">
+                  <Skeleton class="h-4 w-1/4" />
+                  <Skeleton class="h-4 w-1/4" />
+                  <Skeleton class="h-4 w-1/2" />
+                </div>
+                <div class="flex items-center space-x-4">
+                  <Skeleton class="h-4 w-1/4" />
+                  <Skeleton class="h-4 w-1/4" />
+                  <Skeleton class="h-4 w-1/2" />
+                </div>
+              </div>
             ) : filteredRecords.length === 0 ? (
-              <p class="text-text-muted text-sm py-8 text-center">No trace records match the current filters.</p>
+              <EmptyState title="No trace records" description="No trace records match the current filters" />
             ) : (
               <div class="space-y-4">
                 <div class="overflow-x-auto rounded-lg border border-surface-light">
@@ -232,7 +304,7 @@ export default component$(() => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedRecords.map((r: any) => {
+                      {paginatedRecords.map((r: TraceRecord) => {
                         const isExpanded = state.expandedRowIds.includes(r.id);
                         return (
                           <>
@@ -251,10 +323,10 @@ export default component$(() => {
                                 <span class="inline-block transform transition-transform duration-200 mr-2 text-text-muted text-[10px]">
                                   {isExpanded ? "▼" : "▶"}
                                 </span>
-                                {r.timestamp ? new Date(r.timestamp + "Z").toLocaleString() : "—"}
+                                {r.timestamp ? <Tooltip content={formatExact(r.timestamp + "Z")} position="top" class="inline-flex">{timeAgo(r.timestamp + "Z")}</Tooltip> : "—"}
                               </TableCell>
                               <TableCell class="font-medium capitalize text-xs">{r.provider}</TableCell>
-                              <TableCell class="text-xs font-mono max-w-[160px] truncate" title={r.model}>{r.model}</TableCell>
+                              <TableCell class="text-xs font-mono max-w-[160px]"><Tooltip content={r.model} position="top"><div class="truncate">{r.model}</div></Tooltip></TableCell>
                               <TableCell class="text-xs font-semibold tabular-nums text-indigo-400">
                                 {r.tokens_prompt?.toLocaleString() || 0}
                               </TableCell>
@@ -317,30 +389,14 @@ export default component$(() => {
                   <div class="text-xs text-text-muted">
                     Page {currentPage} of {totalPages} ({totalCount} total logs)
                   </div>
-                  <div class="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage <= 1}
-                      onClick$={() => {
-                        state.page--;
-                        state.expandedRowIds = [];
-                      }}
-                    >
-                      <span>Previous</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage >= totalPages}
-                      onClick$={() => {
-                        state.page++;
-                        state.expandedRowIds = [];
-                      }}
-                    >
-                      <span>Next</span>
-                    </Button>
-                  </div>
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange$={(page: number) => {
+                      state.page = page;
+                      state.expandedRowIds = [];
+                    }}
+                  />
                 </div>
               </div>
             )}

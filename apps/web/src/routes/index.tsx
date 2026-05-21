@@ -4,8 +4,28 @@ import { Link } from "@builder.io/qwik-city";
 import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { PageHeader } from "~/components/ui/page-header";
+import { StatCard, StatGrid } from "~/components/ui/stat-card";
+import { Spinner } from "~/components/ui/spinner";
+import { Skeleton } from "~/components/ui/skeleton";
+import { EmptyState } from "~/components/ui/empty-state";
 import { api } from "~/lib/api";
 import { useToast } from "~/components/ui/toast";
+
+interface RecentExperiment {
+  id: string;
+  name: string;
+  status: "pending" | "running" | "completed" | "failed" | "archived";
+  model: { provider: string; model: string };
+  results?: {
+    cost?: number;
+    latency?: number;
+  };
+}
+
+interface HealthAPIResponse {
+  status: "ok" | "error";
+}
 
 interface DashboardState {
   providers: number;
@@ -17,7 +37,7 @@ interface DashboardState {
   loading: boolean;
   apiHealth: "online" | "offline" | "loading";
   syncingOpenCode: boolean;
-  recentExperiments: any[];
+  recentExperiments: RecentExperiment[];
 }
 
 export default component$(() => {
@@ -38,7 +58,7 @@ export default component$(() => {
 
   useTask$(async () => {
     try {
-      const health = await api.get<any>("/health");
+      const health = await api.get<HealthAPIResponse>("/health");
       if (health && health.status === "ok") {
         state.apiHealth = "online";
       } else {
@@ -56,7 +76,7 @@ export default component$(() => {
         api.get<{ targets: unknown[] }>("/config"),
         api.get<{ total: number }>("/experiments"),
         api.get<{ summary: { totalCost: number; totalTokens: number } }>("/analytics/summary"),
-        api.get<{ experiments: unknown[] }>("/experiments"),
+        api.get<{ experiments: RecentExperiment[] }>("/experiments"),
       ]);
 
       state.providers = providers.providers.length;
@@ -67,90 +87,85 @@ export default component$(() => {
       state.usage = analytics.summary;
       state.recentExperiments = (experimentsList.experiments || []).slice(0, 5);
       state.loading = false;
-    } catch (e) {
-      console.error("Failed to load dashboard data:", e);
+    } catch {
       state.loading = false;
+      toast.error("Failed to load dashboard");
     }
   });
 
   return (
     <div class="space-y-8">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p class="text-text-muted">ML/LLM Engineering Platform</p>
-        </div>
-
+      <PageHeader title="Dashboard" description="ML/LLM Engineering Platform">
         <div class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-surface-light bg-surface/50 text-xs font-semibold self-start sm:self-auto">
           <span class="relative flex h-2 w-2">
             <span class={[
               "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
-              state.apiHealth === "online" && "bg-emerald-400",
+              state.apiHealth === "online" && "bg-success",
               state.apiHealth === "offline" && "bg-red-400",
-              state.apiHealth === "loading" && "bg-amber-400"
+              state.apiHealth === "loading" && "bg-warning"
             ]}></span>
             <span class={[
               "relative inline-flex rounded-full h-2 w-2",
-              state.apiHealth === "online" && "bg-emerald-500",
+              state.apiHealth === "online" && "bg-success",
               state.apiHealth === "offline" && "bg-red-500",
-              state.apiHealth === "loading" && "bg-amber-500"
+              state.apiHealth === "loading" && "bg-warning"
             ]}></span>
           </span>
           <span class={[
-            state.apiHealth === "online" && "text-emerald-400",
+            state.apiHealth === "online" && "text-success",
             state.apiHealth === "offline" && "text-red-400",
-            state.apiHealth === "loading" && "text-amber-400"
+            state.apiHealth === "loading" && "text-warning"
           ]}>
             API {state.apiHealth === "online" ? "Online" : state.apiHealth === "offline" ? "Offline" : "Checking..."}
           </span>
         </div>
-      </div>
+      </PageHeader>
 
-      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent>
-            <div class="pt-6 flex flex-col space-y-1">
-              <span class="text-sm font-medium text-text-muted">Configured Instances</span>
-              <span class="text-3xl font-bold tabular-nums text-success">
-                {state.loading ? "..." : state.instances}
-              </span>
+      <StatGrid cols={4}>
+        {state.loading ? (
+          <>
+            <div class="p-4 rounded-xl border border-surface-light bg-surface/40">
+              <Skeleton class="h-8 w-16 mb-2" />
+              <Skeleton class="h-4 w-32" />
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <div class="pt-6 flex flex-col space-y-1">
-              <span class="text-sm font-medium text-text-muted">Discovered Models</span>
-              <span class="text-3xl font-bold tabular-nums text-warning">
-                {state.loading ? "..." : state.models}
-              </span>
+            <div class="p-4 rounded-xl border border-surface-light bg-surface/40">
+              <Skeleton class="h-8 w-16 mb-2" />
+              <Skeleton class="h-4 w-32" />
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <div class="pt-6 flex flex-col space-y-1">
-              <span class="text-sm font-medium text-text-muted">Experiments Executed</span>
-              <span class="text-3xl font-bold tabular-nums text-info">
-                {state.loading ? "..." : state.experiments}
-              </span>
+            <div class="p-4 rounded-xl border border-surface-light bg-surface/40">
+              <Skeleton class="h-8 w-16 mb-2" />
+              <Skeleton class="h-4 w-32" />
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <div class="pt-6 flex flex-col space-y-1">
-              <span class="text-sm font-medium text-text-muted">Monthly Spend</span>
-              <span class="text-3xl font-bold tabular-nums text-amber-400">
-                {state.loading ? "..." : `$${(state.usage.totalCost || 0).toFixed(4)}`}
-              </span>
+            <div class="p-4 rounded-xl border border-surface-light bg-surface/40">
+              <Skeleton class="h-8 w-20 mb-2" />
+              <Skeleton class="h-4 w-24" />
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </>
+        ) : (
+          <>
+            <StatCard
+              value={state.instances}
+              label="Configured Instances"
+              valueColor="text-success tabular-nums"
+            />
+            <StatCard
+              value={state.models}
+              label="Discovered Models"
+              valueColor="text-warning tabular-nums"
+            />
+            <StatCard
+              value={state.experiments}
+              label="Experiments Executed"
+              valueColor="text-info tabular-nums"
+            />
+            <StatCard
+              value={`$${(state.usage.totalCost || 0).toFixed(4)}`}
+              label="Monthly Spend"
+              valueColor="text-amber-400 tabular-nums"
+            />
+          </>
+        )}
+      </StatGrid>
 
       <div class="grid gap-6 md:grid-cols-3">
         <div class="md:col-span-2">
@@ -161,15 +176,13 @@ export default component$(() => {
             <CardContent>
               <div class="pt-2">
                 {state.loading ? (
-                  <p class="text-text-muted text-sm py-4">Loading activity...</p>
+                  <div class="flex items-center justify-center py-4"><Spinner size="sm" /></div>
                 ) : state.recentExperiments.length === 0 ? (
-                  <p class="text-text-muted text-sm py-8 text-center bg-surface/20 rounded-lg border border-dashed border-surface-light">
-                    No recent activity. Create a new experiment to begin tracking!
-                  </p>
+                  <EmptyState title="No recent activity" description="Create a new experiment to begin tracking!" />
                 ) : (
                   <div class="divide-y divide-surface-light">
-                    {state.recentExperiments.map((item: any) => {
-                      let badgeVariant: any = "secondary";
+                    {state.recentExperiments.map((item: RecentExperiment) => {
+                      let badgeVariant: "secondary" | "success" | "warning" | "destructive" = "secondary";
                       if (item.status === "completed") badgeVariant = "success";
                       else if (item.status === "running" || item.status === "pending") badgeVariant = "warning";
                       else if (item.status === "failed") badgeVariant = "destructive";
@@ -184,8 +197,8 @@ export default component$(() => {
                             <div class="text-xs text-text-muted font-mono">{item.model.provider} / {item.model.model}</div>
                           </div>
                           <div class="text-right">
-                            <div class="text-xs font-bold text-amber-400 tabular-nums">
-                              {item.results?.cost ? `$${parseFloat(item.results.cost).toFixed(6)}` : "—"}
+                            <div class="text-xs font-bold text-warning tabular-nums">
+                              {item.results?.cost ? `$${item.results.cost.toFixed(6)}` : "—"}
                             </div>
                             {item.results?.latency && (
                               <div class="text-[10px] text-text-muted tabular-nums">{item.results.latency}ms</div>
@@ -237,10 +250,7 @@ export default component$(() => {
                 >
                   {state.syncingOpenCode ? (
                     <div class="flex items-center gap-1.5">
-                      <svg class="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
+                      <Spinner size="sm" />
                       <span>Syncing...</span>
                     </div>
                   ) : (

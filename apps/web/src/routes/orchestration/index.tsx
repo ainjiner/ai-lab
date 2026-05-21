@@ -4,6 +4,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Input } from "~/components/ui/input";
+import { Skeleton } from "~/components/ui/skeleton";
+import { EmptyState } from "~/components/ui/empty-state";
 import { api } from "~/lib/api";
 import { useToast } from "~/components/ui/toast";
 
@@ -45,6 +47,7 @@ export default component$(() => {
       state.models = m.models || [];
     } catch (e) {
       console.error("Failed to load orchestration status:", e);
+      toast.error("Failed to load orchestration");
     }
   });
 
@@ -54,6 +57,7 @@ export default component$(() => {
       await loadData();
     } catch {
       state.loading = false;
+      toast.error("Failed to load orchestration");
     } finally {
       state.loading = false;
     }
@@ -241,11 +245,19 @@ export default component$(() => {
         <CardContent>
           <div class="pt-2">
             {state.loading ? (
-              <p class="text-text-muted text-sm py-4">Loading active configuration...</p>
+              <div class="space-y-4">
+                {[1, 2, 3].map(() => (
+                  <div class="flex items-center justify-between p-4 rounded-lg border border-surface-light bg-surface/40">
+                    <div class="space-y-2">
+                      <Skeleton class="h-4 w-32" />
+                      <Skeleton class="h-3 w-48" />
+                    </div>
+                    <Skeleton class="h-8 w-20" />
+                  </div>
+                ))}
+              </div>
             ) : currentAgents.length === 0 ? (
-              <p class="text-text-muted text-sm py-8 text-center bg-surface/20 rounded-lg border border-dashed border-surface-light">
-                No agents configured for this orchestrator. Click "+ Add Agent" to construct one.
-              </p>
+              <EmptyState title="No agents configured" description="Click 'Add Agent' to create your first agent configuration." />
             ) : (
               <div class="space-y-4">
                 {currentAgents.map((a: any) => (
@@ -293,11 +305,17 @@ export default component$(() => {
         <CardContent>
           <div class="pt-2">
             {state.loading ? (
-              <p class="text-text-muted text-sm py-4">Loading active skills...</p>
+              <div class="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+                {[1, 2, 3].map(() => (
+                  <div class="p-4 rounded-lg border border-surface-light bg-surface/40 space-y-2">
+                    <Skeleton class="h-4 w-24" />
+                    <Skeleton class="h-3 w-40" />
+                    <Skeleton class="h-5 w-16 mt-2" />
+                  </div>
+                ))}
+              </div>
             ) : currentSkills.length === 0 ? (
-              <p class="text-text-muted text-sm py-8 text-center bg-surface/20 rounded-lg border border-dashed border-surface-light">
-                No active skills scanned in the skills candidate directories.
-              </p>
+              <EmptyState title="No skills found" description="No active skills scanned in the skills candidate directories." />
             ) : (
               <div class="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                 {currentSkills.map((s: any) => (

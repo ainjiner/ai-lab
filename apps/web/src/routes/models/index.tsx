@@ -3,6 +3,10 @@ import type { DocumentHead } from "@builder.io/qwik-city";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Input } from "~/components/ui/input";
+import { Select } from "~/components/ui/select";
+import { useToast } from "~/components/ui/toast";
+import { SearchInput } from "~/components/ui/search-filter";
+import { Skeleton } from "~/components/ui/skeleton";
 import { api, PROVIDER_FEATURES } from "~/lib/api";
 
 interface Model {
@@ -57,8 +61,7 @@ export default component$(() => {
     };
     aliasLoading: boolean;
 
-    // Toast
-    toast: { msg: string; kind: "ok" | "err" } | null;
+
   }>({
     models: [],
     instances: [],
@@ -81,8 +84,6 @@ export default component$(() => {
       saving: false,
     },
     aliasLoading: false,
-
-    toast: null,
   });
 
   const reloadAliases = $(async () => {
@@ -129,12 +130,7 @@ export default component$(() => {
     cleanup(() => clearTimeout(timer));
   });
 
-  const showToast = $((msg: string, kind: "ok" | "err" = "ok") => {
-    state.toast = { msg, kind };
-    setTimeout(() => {
-      state.toast = null;
-    }, 3500);
-  });
+  const toast = useToast();
 
   const fmtCtx = (n: number) => {
     if (n >= 1000000) return `${(n / 1000000).toFixed(0)}M`;
@@ -175,7 +171,7 @@ export default component$(() => {
     } else {
       if (state.selectedModelIds.length >= 2) {
         // Limit to 2 maximum selections for side-by-side comparison
-        showToast("You can only compare exactly 2 models at a time.", "err");
+        toast.error("You can only compare exactly 2 models at a time.");
         return;
       }
       state.selectedModelIds = [...state.selectedModelIds, modelId];
@@ -188,20 +184,6 @@ export default component$(() => {
 
   return (
     <div class="space-y-8">
-      {/* Toast Notification */}
-      {state.toast && (
-        <div
-          class={`fixed top-4 right-4 z-50 flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold shadow-2xl border transition-all duration-300 transform translate-y-0 ${
-            state.toast.kind === "ok"
-              ? "bg-emerald-950/90 border-emerald-500/30 text-emerald-400 backdrop-blur-md"
-              : "bg-rose-950/90 border-rose-500/30 text-rose-400 backdrop-blur-md"
-          }`}
-        >
-          <span class="text-base">{state.toast.kind === "ok" ? "✓" : "⚠"}</span>
-          <span>{state.toast.msg}</span>
-        </div>
-      )}
-
       {/* Compare Modal */}
       {state.compareModalOpen && (
         <div
@@ -468,11 +450,11 @@ export default component$(() => {
                   <label class="text-xs font-semibold text-text-muted uppercase tracking-wider">
                     Provider Instance
                   </label>
-                  <select
-                    class="w-full rounded-lg border border-surface-light bg-surface px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                  <Select
+                    class="w-full"
                     value={state.aliasForm.providerId}
-                    onChange$={(e) => {
-                      state.aliasForm.providerId = (e.target as HTMLSelectElement).value;
+                    onChange$={(e: any) => {
+                      state.aliasForm.providerId = e.target.value;
                       state.aliasForm.modelId = ""; // Reset model when provider instance changes
                     }}
                   >
@@ -480,16 +462,16 @@ export default component$(() => {
                     {state.instances.map((inst) => (
                       <option key={inst.id} value={inst.id}>{`${inst.name} (${inst.id})`}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 <div class="space-y-1">
                   <label class="text-xs font-semibold text-text-muted uppercase tracking-wider">Target Model</label>
-                  <select
-                    class="w-full rounded-lg border border-surface-light bg-surface px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                  <Select
+                    class="w-full"
                     value={state.aliasForm.modelId}
-                    onChange$={(e) => {
-                      state.aliasForm.modelId = (e.target as HTMLSelectElement).value;
+                    onChange$={(e: any) => {
+                      state.aliasForm.modelId = e.target.value;
                     }}
                     disabled={!state.aliasForm.providerId}
                   >
@@ -499,7 +481,7 @@ export default component$(() => {
                     {availableModelsForAlias.map((m) => (
                       <option key={m.id} value={m.id}>{`${m.name} (${m.id})`}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 <Button
@@ -522,9 +504,9 @@ export default component$(() => {
                       state.aliasForm.modelId = "";
                       state.aliasForm.providerId = "";
                       await reloadAliases();
-                      await showToast("Alias created successfully", "ok");
+                      toast.success("Alias created successfully");
                     } catch (err) {
-                      await showToast(String(err), "err");
+                      toast.error(String(err));
                     } finally {
                       state.aliasForm.saving = false;
                     }
@@ -580,9 +562,9 @@ export default component$(() => {
                             try {
                               await api.delete(`/models/aliases/${encodeURIComponent(a.alias)}`);
                               await reloadAliases();
-                              await showToast("Alias deleted successfully", "ok");
+                              toast.success("Alias deleted successfully");
                             } catch (err) {
-                              await showToast(String(err), "err");
+                              toast.error(String(err));
                             }
                           }
                         }}
@@ -629,7 +611,7 @@ export default component$(() => {
                 state.comparisonData = data.comparison;
               } catch (err) {
                 console.error(err);
-                showToast("Failed to fetch comparison details", "err");
+                toast.error("Failed to fetch comparison details");
               } finally {
                 state.compareLoading = false;
               }
@@ -656,7 +638,7 @@ export default component$(() => {
               }
               const data = await api.get<{ models: Model[] }>("/models");
               state.models = data.models;
-              showToast("Successfully scanned all instances", "ok");
+              toast.success("Successfully scanned all instances");
             }}
           >
             Scan All
@@ -671,19 +653,13 @@ export default component$(() => {
             <label class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1 block">
               Search Catalog
             </label>
-            <div class="relative">
-              <Input
-                placeholder="Search models by name or identifier..."
-                value={state.searchInput}
-                onInput$={(e) => {
-                  state.searchInput = (e.target as HTMLInputElement).value;
-                }}
-                class="pl-10"
-              />
-              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted text-lg pointer-events-none">
-                🔍
-              </span>
-            </div>
+            <SearchInput
+              placeholder="Search models by name or identifier..."
+              value={state.searchInput}
+              onInput$={(val) => {
+                state.searchInput = val;
+              }}
+            />
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
@@ -753,14 +729,56 @@ export default component$(() => {
 
       {/* Model Catalog Grid */}
       {state.loading ? (
-        <p class="text-text-muted text-center py-12">Loading models...</p>
+        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} class="rounded-2xl border border-surface-light bg-surface p-6 h-[280px] flex flex-col justify-between">
+              <div class="space-y-4">
+                <div class="flex justify-between items-start">
+                  <div class="space-y-2 w-full">
+                    <Skeleton class="h-6 w-3/4 rounded-md" />
+                    <Skeleton class="h-4 w-1/4 rounded-md" />
+                  </div>
+                  <Skeleton class="h-5 w-12 rounded-full shrink-0 ml-4" />
+                </div>
+                <div class="flex gap-2">
+                  <Skeleton class="h-5 w-16 rounded-md" />
+                  <Skeleton class="h-5 w-16 rounded-md" />
+                  <Skeleton class="h-5 w-16 rounded-md" />
+                </div>
+              </div>
+              <div class="space-y-3 pt-6 border-t border-surface-light/50">
+                <div class="flex justify-between">
+                  <Skeleton class="h-4 w-20 rounded-md" />
+                  <Skeleton class="h-4 w-24 rounded-md" />
+                </div>
+                <div class="flex justify-between">
+                  <Skeleton class="h-4 w-20 rounded-md" />
+                  <Skeleton class="h-4 w-24 rounded-md" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : filteredModels.length === 0 ? (
         <div class="text-center py-16 border border-dashed border-surface-light rounded-2xl bg-surface/50">
           <span class="text-4xl text-text-muted">🤖</span>
-          <h3 class="text-lg font-bold text-foreground mt-4">No Models Found</h3>
+          <h3 class="text-lg font-bold text-text mt-4">No Models Found</h3>
           <p class="text-sm text-text-muted mt-2 max-w-sm mx-auto">
             Try adjusting your search query, clearing your filter chips, or scanning for new models.
           </p>
+          {(state.searchInput || state.selectedProvider || state.selectedCapabilities.length > 0) && (
+            <Button
+              class="mt-6"
+              variant="outline"
+              onClick$={() => {
+                state.searchInput = "";
+                state.selectedProvider = null;
+                state.selectedCapabilities = [];
+              }}
+            >
+              Clear All Filters
+            </Button>
+          )}
         </div>
       ) : (
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

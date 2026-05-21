@@ -1,9 +1,15 @@
-import { component$, useStore } from "@builder.io/qwik";
+import { component$, useStore, useTask$, $ } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
 import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Input } from "~/components/ui/input";
+import { Select } from "~/components/ui/select";
+import { Textarea } from "~/components/ui/textarea";
+import { PageHeader } from "~/components/ui/page-header";
+import { EmptyState } from "~/components/ui/empty-state";
+import { useToast } from "~/components/ui/toast";
+import { api } from "~/lib/api";
 
 interface PromptState {
   input: string;
@@ -12,6 +18,7 @@ interface PromptState {
   temperature: number;
   maxTokens: number;
   isLoading: boolean;
+  models: Array<{ id: string; name: string; provider?: string }>;
   history: Array<{
     id: number;
     input: string;
@@ -27,22 +34,62 @@ export default component$(() => {
   const state = useStore<PromptState>({
     input: "",
     output: "",
-    model: "llama-3.1-8b",
+    model: "",
     temperature: 0.7,
     maxTokens: 1024,
     isLoading: false,
-    history: [
-      { id: 1, input: "Explain quantum computing", output: "Quantum computing uses...", model: "llama-3.1-8b", tokens: 245, latency: 1.2, timestamp: new Date() },
-      { id: 2, input: "Write a haiku about AI", output: "Silicon dreams flow\nNeural paths light up the dark\nMind without a soul", model: "qwen-2.5-72b", tokens: 32, latency: 0.8, timestamp: new Date() },
-    ],
+    models: [],
+    history: [],
   });
 
-  const models = [
-    { id: "llama-3.1-8b", name: "Llama 3.1 8B", type: "chat" },
-    { id: "llama-3.1-70b", name: "Llama 3.1 70B", type: "chat" },
-    { id: "qwen-2.5-72b", name: "Qwen 2.5 72B", type: "chat" },
-    { id: "deepseek-r1", name: "DeepSeek R1", type: "reasoning" },
-  ];
+  const toast = useToast();
+
+  useTask$(async () => {
+    try {
+      const res: any = await api.get("/models");
+      const modelList = Array.isArray(res) ? res : res.models || [];
+      state.models = modelList.slice(0, 20).map((m: any) => ({
+        id: m.id,
+        name: m.name || m.id,
+        provider: m.provider,
+      }));
+      if (state.models.length > 0) {
+        state.model = state.models[0].id;
+      }
+    } catch (e) {
+      toast.error("Failed to load models");
+      state.models = [];
+    }
+  });
+
+  const runPrompt = $(async () => {
+    if (!state.input.trim() || state.isLoading) return;
+    state.isLoading = true;
+    try {
+      const res: any = await api.post("/playground/chat", {
+        messages: [{ role: "user", content: state.input }],
+        model: state.model,
+        provider: "baseten",
+        temperature: state.temperature,
+        maxTokens: state.maxTokens,
+      });
+      state.output = res.response || "No response";
+      state.history.unshift({
+        id: Date.now(),
+        input: state.input,
+        output: state.output,
+        model: state.model,
+        tokens: (res.tokens?.prompt || 0) + (res.tokens?.completion || 0),
+        latency: res.latency || 0,
+        timestamp: new Date(),
+      });
+    } catch (e) {
+      toast.error("Failed to run prompt");
+      state.output = "Error: Failed to run prompt";
+    } finally {
+      state.isLoading = false;
+    }
+  });
 
   const templates = [
     { name: "Summarize", prompt: "Summarize the following text:\n\n{text}" },
@@ -53,10 +100,7 @@ export default component$(() => {
 
   return (
     <div class="space-y-6">
-      <div>
-        <h1 class="text-3xl font-bold tracking-tight">Prompt Engineering</h1>
-        <p class="text-text-muted">Test and optimize your prompts</p>
-      </div>
+      <PageHeader title="Prompt Engineering" description="Test and optimize your prompts" />
 
       <div class="grid gap-6 lg:grid-cols-3">
         <div class="lg:col-span-2 space-y-4">
@@ -65,15 +109,14 @@ export default component$(() => {
               <div class="flex items-center justify-between">
                 <CardTitle>Playground</CardTitle>
                 <div class="flex items-center gap-2">
-                  <select
-                    class="rounded-lg border border-surface-light bg-surface px-3 py-2 text-sm"
+                  <Select
                     value={state.model}
                     onChange$={(e) => { state.model = (e.target as HTMLSelectElement).value; }}
                   >
-                    {models.map((m) => (
+                    {state.models.map((m: any) => (
                       <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
               </div>
             </CardHeader>
@@ -81,8 +124,8 @@ export default component$(() => {
               <div class="space-y-4">
                 <div class="space-y-2">
                   <label class="text-sm font-medium">Input</label>
-                  <textarea
-                    class="flex min-h-[120px] w-full rounded-lg border border-surface-light bg-surface px-3 py-2 text-sm text-text placeholder:text-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  <Textarea
+                    class="min-h-[120px]"
                     placeholder="Enter your prompt here..."
                     value={state.input}
                     onInput$={(e) => { state.input = (e.target as HTMLTextAreaElement).value; }}
@@ -113,7 +156,7 @@ export default component$(() => {
                 </div>
 
                 <div class="flex gap-2">
-                  <Button class="flex-1">
+                  <Button class="flex-1" onClick$={runPrompt}>
                     {state.isLoading ? "Generating..." : "Generate"}
                   </Button>
                   <Button variant="outline">Clear</Button>
@@ -181,6 +224,9 @@ export default component$(() => {
           <CardTitle>History</CardTitle>
         </CardHeader>
         <CardContent>
+          {state.history.length === 0 ? (
+            <EmptyState title="No history yet" description="Run a prompt to see it here" />
+          ) : (
           <div class="space-y-3">
             {state.history.map((item) => (
               <div
@@ -201,6 +247,7 @@ export default component$(() => {
               </div>
             ))}
           </div>
+          )}
         </CardContent>
       </Card>
     </div>

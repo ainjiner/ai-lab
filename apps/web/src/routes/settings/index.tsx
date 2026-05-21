@@ -1,12 +1,20 @@
-import { component$, useStore, useTask$, $ } from "@builder.io/qwik";
+import { component$, useStore, useTask$, $, useOnDocument } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
 import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
+import { Tooltip, CopyButton } from "~/components/ui";
 import { Input } from "~/components/ui/input";
+import { PageHeader } from "~/components/ui/page-header";
+import { StatCard, StatGrid } from "~/components/ui/stat-card";
+import { Spinner } from "~/components/ui/spinner";
+import { Form, Field, Label, FieldError } from "~/components/ui/form";
+import { updateSettingsSchema, validate } from "~/lib/validation";
 import { api } from "~/lib/api";
 import { useToast } from "~/components/ui/toast";
 import { Skeleton } from "~/components/ui/skeleton";
+import { Modal } from "~/components/ui/modal";
+import { EmptyState } from "~/components/ui/empty-state";
 
 interface Target {
   id: string;
@@ -25,10 +33,42 @@ interface Settings {
   defaultModel?: string;
 }
 
+interface PreviewConfig {
+  path: string;
+  content: string;
+}
+
+interface PreviewAPIResponse {
+  preview: {
+    id: string;
+    name: string;
+    target: {
+      name: string;
+      configPath: string;
+      authPath?: string;
+    };
+    provider: Record<string, unknown>;
+    auth?: Record<string, unknown>;
+    configs: PreviewConfig[];
+  };
+}
+
+interface SettingsState {
+  targets: Target[];
+  settings: Settings;
+  loading: boolean;
+  syncingAll: boolean;
+  syncingTargetId: string | null;
+  validatingTargetId: string | null;
+  previewTarget: PreviewAPIResponse["preview"] | null;
+  saved: boolean;
+  savedError: boolean;
+}
+
 export default component$(() => {
   const toast = useToast();
   
-  const state = useStore<any>({
+  const state = useStore<SettingsState>({
     targets: [],
     settings: { minChunkSize: 80, timeout: 60000, retries: 3 },
     loading: true,
@@ -36,15 +76,28 @@ export default component$(() => {
     syncingTargetId: null,
     validatingTargetId: null,
     previewTarget: null,
+    saved: false,
+    savedError: false,
   });
+
+  useOnDocument(
+    "keydown",
+    $((e: KeyboardEvent) => {
+      if (e.key === "Escape" && (state.previewTarget)) {
+        state.previewTarget = null;
+      }
+    })
+  );
+  
 
   const loadData = $(async () => {
     try {
       const data = await api.get<{ targets: Target[]; settings: Settings }>("/config");
       state.targets = data.targets;
       state.settings = data.settings;
-    } catch (e) {
-      console.error("Failed to load settings data:", e);
+    } catch (err) {
+      console.error("Failed to load settings data:", err);
+      toast.error("Failed to load settings");
     }
   });
 
@@ -52,7 +105,9 @@ export default component$(() => {
     state.loading = true;
     try {
       await loadData();
-    } catch {
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load settings");
       state.loading = false;
     } finally {
       state.loading = false;
@@ -83,12 +138,7 @@ export default component$(() => {
 
   return (
     <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-3xl font-bold tracking-tight">Settings</h1>
-          <p class="text-text-muted">Configure ML Engine and sync targets</p>
-        </div>
-        
+      <PageHeader title="Settings" description="Configure ML Engine and sync targets">
         <Button
           disabled={state.syncingAll}
           onClick$={async () => {
@@ -106,17 +156,32 @@ export default component$(() => {
         >
           {state.syncingAll ? (
             <div class="flex items-center gap-1.5">
-              <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
+              <Spinner size="sm" />
               <span>Syncing...</span>
             </div>
           ) : (
             <span>Sync All</span>
           )}
         </Button>
-      </div>
+      </PageHeader>
+
+      <StatGrid cols={3}>
+        <StatCard
+          value={state.targets.length}
+          label="Config Targets"
+          valueColor="text-primary tabular-nums"
+        />
+        <StatCard
+          value={state.targets.filter((t: Target) => t.enabled).length}
+          label="Enabled Targets"
+          valueColor="text-success tabular-nums"
+        />
+        <StatCard
+          value={state.settings.minChunkSize}
+          label="Min Chunk Size"
+          valueColor="text-warning tabular-nums"
+        />
+      </StatGrid>
 
       <div class="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -164,9 +229,7 @@ export default component$(() => {
                               {t.enabled ? "enabled" : "disabled"}
                             </Badge>
                           </div>
-                          <div class="text-xs text-text-muted mt-1 select-all truncate max-w-[280px]" title={t.configPath}>
-                            {t.configPath}
-                          </div>
+                          <Tooltip content={t.configPath} position="bottom" class="block w-full"><div class="text-xs text-text-muted mt-1 select-all truncate max-w-[280px]">{t.configPath}</div></Tooltip>
                         </div>
                         <span class="text-[10px] font-semibold text-cyan-400 bg-cyan-950/40 px-2 py-0.5 rounded-full border border-cyan-800/30">
                           {formatLastSynced(t.lastSynced)}
@@ -179,7 +242,7 @@ export default component$(() => {
                           size="sm"
                           onClick$={async () => {
                             try {
-                              const res = await api.get<any>(`/config/preview/${t.id}`);
+                              const res = await api.get<PreviewAPIResponse>(`/config/preview/${t.id}`);
                               state.previewTarget = res.preview;
                             } catch (err) {
                               await toast.error(`Failed to load config preview: ${String(err)}`);
@@ -196,11 +259,11 @@ export default component$(() => {
                           onClick$={async () => {
                             state.validatingTargetId = t.id;
                             try {
-                              const res = await api.post<any>(`/config/targets/${t.id}/validate`);
+                              const res = await api.post<{ valid: boolean; errors?: string[] }>(`/config/targets/${t.id}/validate`);
                               if (res.valid) {
                                 await toast.success("Configuration is 100% clean and valid! ✅");
                               } else {
-                                await toast.error(`Validation errors: ${res.errors.join(", ")}`);
+                                await toast.error(`Validation errors: ${(res.errors || []).join(", ")}`);
                               }
                             } catch (err) {
                               await toast.error(`Validation failed: ${String(err)}`);
@@ -249,13 +312,12 @@ export default component$(() => {
                         >
                           {state.syncingTargetId === t.id ? (
                             <div class="flex items-center gap-1.5">
-                              <svg class="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                              </svg>
+                              <Spinner size="sm" class="h-3.5 w-3.5" />
                               <span>Syncing...</span>
                             </div>
-                          ) : (
+              ) : state.targets.length === 0 ? (
+                <EmptyState title="No config targets" description="No config targets have been configured yet" />
+              ) : (
                             <span>Sync</span>
                           )}
                         </Button>
@@ -273,97 +335,127 @@ export default component$(() => {
             <CardTitle>Default Settings</CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="pt-4 space-y-4">
-              {(["minChunkSize", "timeout", "retries"] as const).map((key) => (
-                <div key={key} class="space-y-2">
-                  <label class="text-sm font-medium capitalize">{key}</label>
+            <Form
+              validate$={$((data: Record<string, unknown>) => validate(updateSettingsSchema, data))}
+              onSubmit$={async (data) => {
+                try {
+                  await api.post("/config/settings", {
+                    minChunkSize: data.minChunkSize,
+                    timeout: data.timeout,
+                    retries: data.retries,
+                  });
+                  state.settings.minChunkSize = parseInt(data.minChunkSize);
+                  state.settings.timeout = parseInt(data.timeout);
+                  state.settings.retries = parseInt(data.retries);
+                  state.saved = true;
+                  state.savedError = false;
+                  await toast.success("Settings saved successfully! ✅");
+                  setTimeout(() => { state.saved = false; }, 3000);
+                } catch {
+                  state.savedError = true;
+                  state.saved = false;
+                  await toast.error("Failed to save settings");
+                  setTimeout(() => { state.savedError = false; }, 3000);
+                }
+              }}
+            >
+              <div class="pt-4 space-y-4">
+                <Field name="minChunkSize">
+                  <Label required>Min Chunk Size</Label>
                   <Input
+                    name="minChunkSize"
                     type="number"
-                    value={state.settings[key] as number}
-                    onChange$={(e) => {
-                      state.settings[key] = parseInt((e.target as HTMLInputElement).value);
-                    }}
+                    value={String(state.settings.minChunkSize)}
                   />
-                </div>
-              ))}
-              <Button
-                onClick$={async () => {
-                  try {
-                    await api.post("/config/settings", {
-                      minChunkSize: String(state.settings.minChunkSize),
-                      timeout: String(state.settings.timeout),
-                      retries: String(state.settings.retries),
-                    });
-                    await toast.success("Settings saved successfully! ✅");
-                  } catch {
-                    await toast.error("Failed to save settings");
-                  }
-                }}
-              >
-                Save Settings
-              </Button>
-            </div>
+                  <FieldError name="minChunkSize" />
+                </Field>
+
+                <Field name="timeout">
+                  <Label required>Timeout (ms)</Label>
+                  <Input
+                    name="timeout"
+                    type="number"
+                    value={String(state.settings.timeout)}
+                  />
+                  <FieldError name="timeout" />
+                </Field>
+
+                <Field name="retries">
+                  <Label required>Retries</Label>
+                  <Input
+                    name="retries"
+                    type="number"
+                    value={String(state.settings.retries)}
+                  />
+                  <FieldError name="retries" />
+                </Field>
+
+                <Button type="submit">
+                  {state.saved ? "Saved!" : "Save Settings"}
+                </Button>
+                {state.saved && (
+                  <span class="ml-2 inline-flex items-center gap-1 text-xs font-semibold text-emerald-400">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                    Saved
+                  </span>
+                )}
+                {state.savedError && (
+                  <span class="ml-2 inline-flex items-center gap-1 text-xs font-semibold text-red-400">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    Error
+                  </span>
+                )}
+              </div>
+            </Form>
           </CardContent>
         </Card>
       </div>
 
-      {state.previewTarget && (
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div class="w-full max-w-2xl rounded-xl border border-surface-light bg-surface/90 shadow-2xl space-y-4 max-h-[85vh] flex flex-col p-6 backdrop-blur-md">
-            <div class="flex items-center justify-between border-b border-surface-light pb-3">
-              <div>
-                <h3 class="text-lg font-bold text-text">Preview Configuration: {state.previewTarget.target.name}</h3>
-                <p class="text-xs text-text-muted mt-0.5">Masked payloads generated for safety</p>
+      <Modal
+        open={!!state.previewTarget}
+        title={`Preview Configuration: ${state.previewTarget?.target.name || ""}`}
+        size="2xl"
+        onClose$={$(() => { state.previewTarget = null; })}
+        class="max-h-[85vh] flex flex-col"
+      >
+        <div class="space-y-4">
+          <p class="text-xs text-text-muted -mt-2">Masked payloads generated for safety</p>
+
+          <div class="space-y-1.5">
+            <span class="text-xs font-medium text-text-muted">Target Config Location</span>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 text-xs font-mono bg-background border border-surface-light p-2.5 rounded-lg text-text-muted break-all select-all">
+                {state.previewTarget?.target.configPath}
               </div>
-              <button
-                onClick$={() => { state.previewTarget = null; }}
-                class="text-text-muted hover:text-text text-xl cursor-pointer"
-              >
-                &times;
-              </button>
-            </div>
-
-            <div class="flex-1 overflow-y-auto space-y-4 pr-1">
-              <div class="space-y-1">
-                <span class="text-xs font-semibold text-text-muted">Target Config Location</span>
-                <div class="text-xs font-mono bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-slate-300 break-all select-all">
-                  {state.previewTarget.target.configPath}
-                </div>
-              </div>
-
-              <div class="space-y-1">
-                <span class="text-xs font-semibold text-text-muted">Generated Provider Config</span>
-                <pre class="font-mono text-xs overflow-auto bg-slate-900 border border-slate-800 p-4 rounded-xl text-amber-200/80 max-h-64">
-                  {JSON.stringify(state.previewTarget.provider, null, 2)}
-                </pre>
-              </div>
-
-              {state.previewTarget.target.authPath && (
-                <div class="space-y-2">
-                  <div class="space-y-1">
-                    <span class="text-xs font-semibold text-text-muted">Target Auth Location</span>
-                    <div class="text-xs font-mono bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-slate-300 break-all select-all">
-                      {state.previewTarget.target.authPath}
-                    </div>
-                  </div>
-                  <div class="space-y-1">
-                    <span class="text-xs font-semibold text-text-muted">Generated Auth Config</span>
-                    <pre class="font-mono text-xs overflow-auto bg-slate-900 border border-slate-800 p-4 rounded-xl text-amber-200/80 max-h-64">
-                      {JSON.stringify(state.previewTarget.auth, null, 2)}
-                    </pre>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div class="flex items-center justify-end gap-3 pt-3 border-t border-surface-light">
-              <Button variant="outline" onClick$={() => { state.previewTarget = null; }}>
-                Close
-              </Button>
+              <CopyButton value={state.previewTarget?.target.configPath || ""} />
             </div>
           </div>
+
+          <div class="space-y-1">
+            <span class="text-xs font-semibold text-text-muted">Generated Provider Config</span>
+            <pre class="font-mono text-xs overflow-auto bg-slate-900 border border-slate-800 p-4 rounded-xl text-amber-200/80 max-h-64">
+              {JSON.stringify(state.previewTarget?.provider, null, 2)}
+            </pre>
+          </div>
+
+          {state.previewTarget?.target.authPath && (
+            <div class="space-y-2">
+              <div class="space-y-1">
+                <span class="text-xs font-semibold text-text-muted">Target Auth Location</span>
+                <div class="text-xs font-mono bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-slate-300 break-all select-all">
+                  {state.previewTarget?.target.authPath}
+                </div>
+              </div>
+              <div class="space-y-1">
+                <span class="text-xs font-semibold text-text-muted">Generated Auth Config</span>
+                <pre class="font-mono text-xs overflow-auto bg-slate-900 border border-slate-800 p-4 rounded-xl text-amber-200/80 max-h-64">
+                  {JSON.stringify(state.previewTarget?.auth, null, 2)}
+                </pre>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </Modal>
     </div>
   );
 });

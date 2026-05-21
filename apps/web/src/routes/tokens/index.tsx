@@ -1,10 +1,49 @@
-import { component$, useStore, useTask$ } from "@builder.io/qwik";
+import { component$, useStore, useTask$, $ } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
 import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
+import { Tooltip } from "~/components/ui";
+import { PageHeader } from "~/components/ui/page-header";
+import { StatCard, StatGrid } from "~/components/ui/stat-card";
+import { PeriodSelector } from "~/components/ui/search-filter";
+import { EmptyState } from "~/components/ui/empty-state";
+import { Spinner } from "~/components/ui/spinner";
 import { api } from "~/lib/api";
 
+interface TokenSummary {
+  totalTokens: number;
+  promptTokens: number;
+  completionTokens: number;
+  requestCount: number;
+  avgLatency: number;
+}
+
+interface SummaryAPIResponse {
+  summary: TokenSummary;
+}
+
+interface TokenBreakdownItem {
+  name: string;
+  tokens: number;
+  requests: number;
+  avgLatency?: number;
+}
+
+interface BreakdownAPIResponse {
+  breakdown: {
+    byProvider: TokenBreakdownItem[];
+    byModel: TokenBreakdownItem[];
+  };
+}
+
+interface TokensState {
+  summary: SummaryAPIResponse | null;
+  breakdown: BreakdownAPIResponse["breakdown"] | null;
+  loading: boolean;
+  period: "daily" | "weekly" | "monthly";
+}
+
 export default component$(() => {
-  const state = useStore<any>({
+  const state = useStore<TokensState>({
     summary: null,
     breakdown: null,
     loading: true,
@@ -16,13 +55,13 @@ export default component$(() => {
     state.loading = true;
     try {
       const [summary, breakdown] = await Promise.all([
-        api.get<any>(`/analytics/summary?period=${state.period}`),
-        api.get<any>(`/analytics/breakdown?period=${state.period}`),
+        api.get<SummaryAPIResponse>(`/analytics/summary?period=${state.period}`),
+        api.get<BreakdownAPIResponse>(`/analytics/breakdown?period=${state.period}`),
       ]);
       state.summary = summary;
-      state.breakdown = breakdown;
-    } catch (e) {
-      console.error("Failed to load token usage stats:", e);
+      state.breakdown = breakdown.breakdown;
+    } catch (err) {
+      console.error("Failed to load token usage stats:", err);
     } finally {
       state.loading = false;
     }
@@ -36,76 +75,68 @@ export default component$(() => {
   const completionPct = (completionTokens / totalTokens) * 100;
 
   const providers = state.breakdown?.byProvider || [];
-  const maxProviderTokens = Math.max(...providers.map((p: any) => p.tokens), 0);
+  const maxProviderTokens = Math.max(...providers.map((p: TokenBreakdownItem) => p.tokens), 0);
   
   const models = state.breakdown?.byModel || [];
-  const maxModelTokens = Math.max(...models.map((m: any) => m.tokens), 0);
+  const maxModelTokens = Math.max(...models.map((m: TokenBreakdownItem) => m.tokens), 0);
 
   return (
     <div class="space-y-8">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-3xl font-bold tracking-tight">Token Usage</h1>
-          <p class="text-text-muted">Token consumption across providers and models</p>
-        </div>
-        
-        <div class="flex items-center gap-3">
-          <div class="inline-flex rounded-lg border border-surface-light bg-surface p-1">
-            {(["daily", "weekly", "monthly"] as const).map((p) => (
-              <button
-                key={p}
-                onClick$={() => { state.period = p; }}
-                class={[
-                  "px-3 py-1.5 text-xs font-semibold rounded-md transition-all capitalize cursor-pointer",
-                  state.period === p
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-text-muted hover:text-text"
-                ]}
-              >
-                {p}
-              </button>
-            ))}
+      <PageHeader title="Token Usage" description="Token consumption across providers and models">
+        <PeriodSelector
+          periods={["daily", "weekly", "monthly"]}
+          selected={state.period}
+          onChange={$((p: string) => { state.period = p as "daily" | "weekly" | "monthly"; })}
+        />
+      </PageHeader>
+
+      {totalTokens > 10000000 ? (
+        <div class="flex items-center gap-3 rounded-xl border border-red-500/30 bg-red-950/20 px-5 py-4">
+          <svg class="h-5 w-5 shrink-0 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <p class="text-sm font-semibold text-red-400">Critical Token Usage</p>
+            <p class="text-xs text-red-300/70">You've used {(totalTokens / 1000000).toFixed(1)}M tokens this period. Consider optimizing your prompts or setting budget limits.</p>
           </div>
         </div>
-      </div>
+      ) : totalTokens > 1000000 ? (
+        <div class="flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-950/20 px-5 py-4">
+          <svg class="h-5 w-5 shrink-0 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <p class="text-sm font-semibold text-amber-400">High Token Usage</p>
+            <p class="text-xs text-amber-300/70">You've used {(totalTokens / 1000000).toFixed(1)}M tokens this period. Monitor your usage to avoid unexpected costs.</p>
+          </div>
+        </div>
+      ) : null}
 
-      <div class="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent>
-            <div class="pt-6">
-              <div class="text-sm text-text-muted capitalize">{state.period} Tokens</div>
-              <div class="text-2xl font-bold tabular-nums mt-1 text-primary">
-                {state.loading ? "..." : (state.summary?.summary?.totalTokens || 0).toLocaleString()}
-              </div>
-              <p class="text-xs text-text-muted mt-1">Prompt + completion aggregate</p>
-            </div>
-          </CardContent>
-        </Card>
+      <StatGrid cols={3}>
+        <StatCard
+          value={state.loading ? "..." : (state.summary?.summary?.totalTokens || 0).toLocaleString()}
+          label={`${state.period} Tokens`}
+          valueColor="text-primary tabular-nums"
+        >
+          <p class="text-xs text-text-muted mt-1">Prompt + completion aggregate</p>
+        </StatCard>
 
-        <Card>
-          <CardContent>
-            <div class="pt-6">
-              <div class="text-sm text-text-muted">Prompt Volume</div>
-              <div class="text-2xl font-bold tabular-nums mt-1 text-indigo-400">
-                {state.loading ? "..." : (state.summary?.summary?.promptTokens || 0).toLocaleString()}
-              </div>
-              <p class="text-xs text-text-muted mt-1">Input tokens transmitted</p>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          value={state.loading ? "..." : (state.summary?.summary?.promptTokens || 0).toLocaleString()}
+          label="Prompt Volume"
+          valueColor="text-indigo-400 tabular-nums"
+        >
+          <p class="text-xs text-text-muted mt-1">Input tokens transmitted</p>
+        </StatCard>
 
-        <Card>
-          <CardContent>
-            <div class="pt-6">
-              <div class="text-sm text-text-muted">Completion Volume</div>
-              <div class="text-2xl font-bold tabular-nums mt-1 text-purple-400">
-                {state.loading ? "..." : (state.summary?.summary?.completionTokens || 0).toLocaleString()}
-              </div>
-              <p class="text-xs text-text-muted mt-1">Output tokens generated</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        <StatCard
+          value={state.loading ? "..." : (state.summary?.summary?.completionTokens || 0).toLocaleString()}
+          label="Completion Volume"
+          valueColor="text-purple-400 tabular-nums"
+        >
+          <p class="text-xs text-text-muted mt-1">Output tokens generated</p>
+        </StatCard>
+      </StatGrid>
 
       <Card>
         <CardHeader>
@@ -113,29 +144,29 @@ export default component$(() => {
         </CardHeader>
         <CardContent>
           <div class="pt-2 space-y-4">
-            <div class="w-full h-5 rounded-lg overflow-hidden bg-surface-light flex">
+            <div class="w-full h-4 rounded-lg overflow-hidden bg-surface-light flex">
               <div
-                class="bg-indigo-500 h-full transition-all duration-500"
+                class="bg-primary h-full transition-all duration-500"
                 style={{ width: `${promptPct}%` }}
               />
               <div
-                class="bg-purple-500 h-full transition-all duration-500"
+                class="bg-primary/40 h-full transition-all duration-500"
                 style={{ width: `${completionPct}%` }}
               />
             </div>
             
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-sm pt-2">
               <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-indigo-500" />
+                <span class="w-2.5 h-2.5 rounded-full bg-primary" />
                 <span class="text-text-muted">Prompt Tokens:</span>
-                <span class="font-bold text-indigo-200">
+                <span class="font-medium text-text">
                   {state.loading ? "..." : `${promptTokens.toLocaleString()} (${promptPct.toFixed(1)}%)`}
                 </span>
               </div>
               <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-purple-500" />
+                <span class="w-2.5 h-2.5 rounded-full bg-primary/40" />
                 <span class="text-text-muted">Completion Tokens:</span>
-                <span class="font-bold text-purple-200">
+                <span class="font-medium text-text">
                   {state.loading ? "..." : `${completionTokens.toLocaleString()} (${completionPct.toFixed(1)}%)`}
                 </span>
               </div>
@@ -152,11 +183,11 @@ export default component$(() => {
           <CardContent>
             <div class="pt-2 space-y-4">
               {state.loading ? (
-                <p class="text-text-muted text-sm">Loading breakdown...</p>
+                <div class="flex items-center justify-center py-4"><Spinner size="sm" /></div>
               ) : providers.length === 0 ? (
-                <p class="text-text-muted text-sm py-4 text-center">No provider token usage in this period.</p>
+                <EmptyState title="No provider token usage" description="No provider token usage in this period" />
               ) : (
-                providers.map((item: any) => {
+                providers.map((item: TokenBreakdownItem) => {
                   const pct = maxProviderTokens > 0 ? (item.tokens / maxProviderTokens) * 100 : 0;
                   return (
                     <div key={item.name} class="space-y-1">
@@ -169,7 +200,7 @@ export default component$(() => {
                       </div>
                       <div class="w-full h-2 rounded bg-surface-light overflow-hidden">
                         <div
-                          class="h-full bg-indigo-500 rounded transition-all duration-300"
+                          class="h-full bg-primary rounded transition-all duration-300"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
@@ -188,16 +219,16 @@ export default component$(() => {
           <CardContent>
             <div class="pt-2 space-y-4">
               {state.loading ? (
-                <p class="text-text-muted text-sm">Loading breakdown...</p>
+                <div class="flex items-center justify-center py-4"><Spinner size="sm" /></div>
               ) : models.length === 0 ? (
-                <p class="text-text-muted text-sm py-4 text-center">No model token usage in this period.</p>
+                <EmptyState title="No model token usage" description="No model token usage in this period" />
               ) : (
-                models.map((item: any) => {
+                models.map((item: TokenBreakdownItem) => {
                   const pct = maxModelTokens > 0 ? (item.tokens / maxModelTokens) * 100 : 0;
                   return (
                     <div key={item.name} class="space-y-1">
                       <div class="flex justify-between text-sm">
-                        <span class="font-medium truncate max-w-[240px]" title={item.name}>{item.name}</span>
+                        <Tooltip content={item.name} position="top" class="max-w-[240px] truncate block"><span class="font-medium block truncate">{item.name}</span></Tooltip>
                         <div class="flex items-center gap-2 text-xs">
                           <span class="text-text-muted">{item.requests} reqs</span>
                           <span class="font-bold text-text">{item.tokens.toLocaleString()} tokens</span>
@@ -205,7 +236,7 @@ export default component$(() => {
                       </div>
                       <div class="w-full h-2 rounded bg-surface-light overflow-hidden">
                         <div
-                          class="h-full bg-purple-500 rounded transition-all duration-300"
+                          class="h-full bg-primary/60 rounded transition-all duration-300"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
@@ -225,16 +256,16 @@ export default component$(() => {
         <CardContent>
           <div class="pt-2">
             {state.loading ? (
-              <p class="text-text-muted text-sm py-4">Loading latency data...</p>
+              <div class="flex items-center justify-center py-4"><Spinner size="sm" /></div>
             ) : providers.length === 0 ? (
-              <p class="text-text-muted text-sm py-6 text-center">No latency data available.</p>
+              <EmptyState title="No latency data available" description="No provider latency data in this period" />
             ) : (
               <div class="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-                {providers.map((p: any) => (
+                {providers.map((p: TokenBreakdownItem) => (
                   <div key={p.name} class="p-4 rounded-lg border border-surface-light bg-surface/40 flex flex-col justify-between space-y-2">
                     <div class="text-xs font-semibold text-text-muted uppercase tracking-wider capitalize">{p.name}</div>
                     <div class="flex items-baseline gap-1">
-                      <span class="text-2xl font-bold tabular-nums text-cyan-400">{p.avgLatency}</span>
+                      <span class="text-2xl font-bold tabular-nums text-text">{p.avgLatency}</span>
                       <span class="text-xs text-text-muted">ms</span>
                     </div>
                     <div class="text-[10px] text-text-muted">Calculated across {p.requests} calls</div>

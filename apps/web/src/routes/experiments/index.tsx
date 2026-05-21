@@ -5,7 +5,11 @@ import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Input } from "~/components/ui/input";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "~/components/ui/table";
+import { SearchInput } from "~/components/ui/search-filter";
+import { Skeleton } from "~/components/ui/skeleton";
+import { EmptyState } from "~/components/ui/empty-state";
 import { api } from "~/lib/api";
+import { useToast } from "~/components/ui/toast";
 
 interface Model {
   id: string;
@@ -62,7 +66,6 @@ interface PageState {
   providers: ProviderInstance[];
   models: Model[];
   loading: boolean;
-  toast: { msg: string; kind: "ok" | "err" } | null;
   modal: "new" | "detail" | null;
   active: Experiment | null;
   filterSearch: string;
@@ -84,12 +87,12 @@ interface PageState {
 
 export default component$(() => {
   const loc = useLocation();
+  const toast = useToast();
   const state = useStore<PageState>({
     experiments: [],
     providers: [],
     models: [],
     loading: true,
-    toast: null,
     modal: null,
     active: null,
     filterSearch: "",
@@ -109,19 +112,12 @@ export default component$(() => {
     },
   });
 
-  const showToast = $((msg: string, kind: "ok" | "err" = "ok") => {
-    state.toast = { msg, kind };
-    setTimeout(() => {
-      state.toast = null;
-    }, 4000);
-  });
-
   const reload = $(async () => {
     try {
       const data = await api.get<{ experiments: Experiment[] }>("/experiments");
       state.experiments = data.experiments;
     } catch (err) {
-      showToast("Error loading experiments: " + String(err), "err");
+      toast.error("Failed to load experiments");
     }
   });
 
@@ -147,7 +143,7 @@ export default component$(() => {
       state.providers = instancesRes.instances.filter(i => i.enabled);
       state.models = modelsRes.models;
     } catch (err) {
-      showToast("Failed to load providers/models: " + String(err), "err");
+      toast.error("Failed to load providers/models");
     }
   });
 
@@ -166,6 +162,7 @@ export default component$(() => {
       }
     } catch {
       state.loading = false;
+      toast.error("Failed to load experiments");
     }
   });
 
@@ -180,9 +177,9 @@ export default component$(() => {
         state.experiments[idx].metadata.rating = rating;
         state.experiments = [...state.experiments];
       }
-      showToast(`Rating set to ${rating} stars`);
+      toast.success(`Rating set to ${rating} stars`);
     } catch (err) {
-      showToast("Failed to save rating: " + String(err), "err");
+      toast.error("Failed to save rating");
     }
   });
 
@@ -193,15 +190,15 @@ export default component$(() => {
       state.modal = null;
       state.active = null;
       await reload();
-      showToast("Experiment deleted successfully");
+      toast.success("Experiment deleted successfully");
     } catch (err) {
-      showToast("Failed to delete experiment: " + String(err), "err");
+      toast.error("Failed to delete experiment");
     }
   });
 
   const submitExperiment = $(async (runNow: boolean) => {
     if (!state.form.name || !state.form.userPrompt || !state.form.providerId || !state.form.modelId) {
-      showToast("Please fill in all required fields", "err");
+      toast.error("Please fill in all required fields");
       return;
     }
 
@@ -288,7 +285,7 @@ The underlying model successfully integrated the context provided and returned s
       const newExp = res.experiment;
 
       if (runNow) {
-        showToast("Experiment created. Running simulation...");
+        toast.show("Experiment created. Running simulation...", "info");
         
         const modelName = state.models.find(m => m.id === state.form.modelId)?.name || state.form.modelId.split("/").pop() || state.form.modelId;
         const simulatedOutput = getSimulatedCompletion(state.form.userPrompt, modelName);
@@ -310,15 +307,15 @@ The underlying model successfully integrated the context provided and returned s
           reasoning: "Resumability verification successful. Prompt processed under default constraints."
         });
 
-        showToast("Simulation completed!");
+        toast.show("Simulation completed!", "info");
       } else {
-        showToast("Draft saved successfully!");
+        toast.show("Draft saved successfully!", "info");
       }
 
       state.modal = null;
       await reload();
     } catch (err) {
-      showToast("Error creating experiment: " + String(err), "err");
+      toast.error("Failed to create experiment");
     } finally {
       state.form.saving = false;
     }
@@ -344,12 +341,6 @@ The underlying model successfully integrated the context provided and returned s
 
   return (
     <div class="space-y-8 pb-12">
-      {state.toast && (
-        <div class={`fixed top-4 right-4 z-50 rounded-lg px-4 py-3 text-sm font-medium shadow-lg transition-all ${state.toast.kind === "ok" ? "bg-emerald-500/90 text-white" : "bg-red-500/90 text-white"}`}>
-          {state.toast.msg}
-        </div>
-      )}
-
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-text-muted bg-clip-text text-transparent">Experiments</h1>
@@ -361,17 +352,12 @@ The underlying model successfully integrated the context provided and returned s
       </div>
 
       <div class="bg-surface/50 border border-surface-light rounded-xl p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div class="relative w-full md:max-w-md">
-          <Input
-            placeholder="Search by name or tags..."
-            value={state.filterSearch}
-            onInput$={(e) => { state.filterSearch = (e.target as HTMLInputElement).value; }}
-            class="pl-9 bg-surface/30 border-surface-light/80 text-sm w-full"
-          />
-          <svg class="absolute left-3 top-3 h-4 w-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-        </div>
+        <SearchInput
+          value={state.filterSearch}
+          placeholder="Search by name or tags..."
+          onInput$={(val) => { state.filterSearch = val; }}
+          class="w-full md:max-w-md"
+        />
 
         <div class="flex flex-wrap w-full md:w-auto items-center gap-3">
           <div class="flex items-center gap-2">
@@ -413,17 +399,23 @@ The underlying model successfully integrated the context provided and returned s
           <CardContent>
             {state.loading ? (
             <div class="flex flex-col items-center justify-center py-16 space-y-3">
-              <div class="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-              <p class="text-text-muted text-sm">Loading experiment registry...</p>
-            </div>
-          ) : filteredExperiments.length === 0 ? (
-            <div class="text-center py-16 space-y-4">
-              <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-surface-light text-text-muted text-xl border border-surface-light">🧪</div>
-              <div class="space-y-1">
-                <p class="text-sm font-semibold text-text">No experiments found</p>
-                <p class="text-xs text-text-muted">Create a new experiment or adjust your search filters</p>
+              <div class="w-full space-y-4">
+                {[1, 2, 3].map(() => (
+                  <div class="flex items-center gap-4 p-4 border border-surface-light rounded-lg">
+                    <div class="flex-1 space-y-2">
+                      <Skeleton class="h-4 w-48" />
+                      <Skeleton class="h-3 w-32" />
+                    </div>
+                    <Skeleton class="h-6 w-20" />
+                    <Skeleton class="h-4 w-16" />
+                    <Skeleton class="h-4 w-16" />
+                    <Skeleton class="h-4 w-16" />
+                  </div>
+                ))}
               </div>
             </div>
+          ) : filteredExperiments.length === 0 ? (
+            <EmptyState title="No experiments found" description="Create a new experiment or adjust your search filters" />
           ) : (
             <div class="overflow-x-auto">
               <Table>

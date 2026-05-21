@@ -4,9 +4,11 @@ import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { Select } from "~/components/ui/select";
 import { api } from "~/lib/api";
 import { useToast } from "~/components/ui/toast";
 import { Skeleton } from "~/components/ui/skeleton";
+import { PeriodSelector } from "~/components/ui/search-filter";
 
 export default component$(() => {
   const toast = useToast();
@@ -25,22 +27,27 @@ export default component$(() => {
       saving: false,
     },
     breakdown: null,
+    dailyTrend: [],
   });
 
   const reload = $(async () => {
     try {
-      const [summaryData, projectionData, budgetsData, breakdownData] = await Promise.all([
+      const trendDays = state.period === "daily" ? 7 : state.period === "weekly" ? 30 : 90;
+      const [summaryData, projectionData, budgetsData, breakdownData, trendData] = await Promise.all([
         api.get<any>(`/analytics/summary?period=${state.period}`),
         api.get<any>("/analytics/projection?days=30"),
         api.get<any>("/budgets"),
         api.get<any>(`/analytics/breakdown?period=${state.period}`),
+        api.get<any>(`/analytics/daily-trend?days=${trendDays}`),
       ]);
       state.summary = summaryData;
       state.projection = projectionData;
       state.budgets = budgetsData.budgets;
       state.breakdown = breakdownData.breakdown;
+      state.dailyTrend = trendData.trend || [];
     } catch (e) {
       console.error("Failed to reload cost data:", e);
+      toast.error("Failed to load cost data");
     }
   });
 
@@ -48,18 +55,22 @@ export default component$(() => {
     track(() => state.period);
     state.loading = true;
     try {
-      const [summaryData, projectionData, budgetsData, breakdownData] = await Promise.all([
+      const trendDays = state.period === "daily" ? 7 : state.period === "weekly" ? 30 : 90;
+      const [summaryData, projectionData, budgetsData, breakdownData, trendData] = await Promise.all([
         api.get<any>(`/analytics/summary?period=${state.period}`),
         api.get<any>("/analytics/projection?days=30"),
         api.get<any>("/budgets"),
         api.get<any>(`/analytics/breakdown?period=${state.period}`),
+        api.get<any>(`/analytics/daily-trend?days=${trendDays}`),
       ]);
       state.summary = summaryData;
       state.projection = projectionData;
       state.budgets = budgetsData.budgets;
       state.breakdown = breakdownData.breakdown;
+      state.dailyTrend = trendData.trend || [];
     } catch (e) {
       console.error("Failed to load cost data:", e);
+      toast.error("Failed to load cost data");
     } finally {
       state.loading = false;
     }
@@ -102,22 +113,11 @@ export default component$(() => {
         </div>
         
         <div class="flex items-center gap-3">
-          <div class="inline-flex rounded-lg border border-surface-light bg-surface p-1">
-            {(["daily", "weekly", "monthly"] as const).map((p) => (
-              <button
-                key={p}
-                onClick$={() => { state.period = p; }}
-                class={[
-                  "px-3 py-1.5 text-xs font-semibold rounded-md transition-all capitalize cursor-pointer",
-                  state.period === p
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-text-muted hover:text-text"
-                ]}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
+          <PeriodSelector
+            periods={["daily", "weekly", "monthly"] as unknown as string[]}
+            selected={state.period}
+            onChange={$((p: string) => { state.period = p as "daily" | "weekly" | "monthly"; })}
+          />
 
           <Button
             variant="outline"
@@ -202,6 +202,57 @@ export default component$(() => {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <div class="flex items-center justify-between">
+            <CardTitle>Daily Cost Trend</CardTitle>
+            <span class="text-xs text-text-muted">Last {state.period === "daily" ? "7" : state.period === "weekly" ? "30" : "90"} days</span>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div class="pt-2">
+            {state.loading ? (
+              <div class="flex items-end gap-1 h-32">
+                {Array.from({ length: state.period === "daily" ? 7 : state.period === "weekly" ? 30 : 14 }, (_, i) => (
+                  <Skeleton key={i} class="flex-1 h-16 rounded-sm" />
+                ))}
+              </div>
+            ) : state.dailyTrend.length === 0 ? (
+              <p class="text-text-muted text-sm py-6 text-center">No daily cost data available yet.</p>
+            ) : (
+              <div class="overflow-x-auto -mx-4 px-4">
+                <div class="flex items-end gap-[3px] h-40 min-w-[300px]">
+                  {(() => {
+                    const maxCost = Math.max(...state.dailyTrend.map((d: any) => d.totalCost), 0.001);
+                    return state.dailyTrend.map((d: any, i: number) => {
+                      const heightPct = (d.totalCost / maxCost) * 100;
+                      const dateStr = new Date(d.date + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" });
+                      const barColor = heightPct > 80 ? "from-amber-500 to-red-500"
+                        : heightPct > 50 ? "from-amber-400 to-amber-500"
+                        : "from-emerald-400 to-teal-500";
+                      return (
+                        <div key={d.date} class="flex-1 flex flex-col items-center gap-1 group relative min-w-0">
+                          <div class="w-full rounded-sm bg-surface-light/50 overflow-hidden relative" style={{ height: `${Math.max(heightPct, 2)}%`, alignSelf: "flex-end" }}>
+                            <div
+                              class={`absolute inset-0 bg-gradient-to-t ${barColor} opacity-80 group-hover:opacity-100 transition-opacity rounded-sm`}
+                              style={{ height: "100%" }}
+                            />
+                          </div>
+                          <div class="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-surface-dark text-text text-[10px] px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap z-10 border border-surface-light">
+                            ${d.totalCost.toFixed(4)} | {d.requestCount} reqs
+                          </div>
+                          <span class="text-[9px] text-text-muted leading-tight truncate w-full text-center">{dateStr}</span>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <div class="grid gap-6 md:grid-cols-2">
         <Card>
@@ -421,12 +472,29 @@ export default component$(() => {
                 ) : state.projection ? (
                   <div class="space-y-4">
                     <div class="flex justify-between items-center text-sm border-b border-surface-light pb-2">
-                      <span class="text-text-muted">Current monthly spent</span>
+                      <span class="text-text-muted">Current ({state.period})</span>
                       <span class="font-medium text-text">${state.projection.projection.currentTotal.toFixed(4)}</span>
                     </div>
-                    <div class="flex justify-between items-center text-sm border-b border-surface-light pb-2 last:border-0">
+                    <div class="flex justify-between items-center text-sm border-b border-surface-light pb-2">
                       <span class="text-text-muted">Projected 30 days</span>
                       <span class="font-bold text-amber-400">${state.projection.projection.projected.toFixed(4)}</span>
+                    </div>
+                    <div class="pt-2">
+                      <div class="flex justify-between text-xs text-text-muted mb-1">
+                        <span>Usage vs projection</span>
+                        <span>{((state.projection.projection.currentTotal / state.projection.projection.projected) * 100).toFixed(1)}%</span>
+                      </div>
+                      <div class="w-full h-2.5 rounded-full bg-surface-light overflow-hidden">
+                        <div
+                          class="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${Math.min((state.projection.projection.currentTotal / state.projection.projection.projected) * 100, 100)}%`,
+                            background: (state.projection.projection.currentTotal / state.projection.projection.projected) > 0.8
+                              ? "linear-gradient(90deg, #f59e0b, #ef4444)"
+                              : "linear-gradient(90deg, #10b981, #3b82f6)"
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -479,17 +547,17 @@ export default component$(() => {
 
               <div class="space-y-1.5">
                 <label class="text-xs font-semibold text-text-muted">Period</label>
-                <select
+                <Select
                   value={state.budgetForm.period}
                   onChange$={(e: any) => {
                     state.budgetForm.period = e.target.value;
                   }}
-                  class="flex h-10 w-full rounded-lg border border-surface-light bg-surface px-3 py-2 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  class="w-full"
                 >
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
                   <option value="monthly">Monthly</option>
-                </select>
+                </Select>
               </div>
             </div>
 

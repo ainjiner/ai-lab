@@ -1,14 +1,24 @@
-import { component$, useStore } from "@builder.io/qwik";
+import { component$, useStore, useTask$ } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
 import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
+import { Select, Textarea } from "~/components/ui";
 import { Progress } from "~/components/ui/progress";
+import { PageHeader } from "~/components/ui/page-header";
+import { StatusBadge } from "~/components/ui/status-badge";
+import { Skeleton } from "~/components/ui/skeleton";
+import { EmptyState } from "~/components/ui/empty-state";
+import { useToast } from "~/components/ui/toast";
+import { api } from "~/lib/api";
+
+
 
 interface CompareState {
   modelA: string;
   modelB: string;
   prompt: string;
+  loading: boolean;
+  models: Array<{ id: string; name: string; provider: string }>;
   results: Array<{
     model: string;
     output: string;
@@ -19,18 +29,22 @@ interface CompareState {
 }
 
 export default component$(() => {
+  const toast = useToast();
+  
   const state = useStore<CompareState>({
     modelA: "llama-3.1-8b",
     modelB: "qwen-2.5-72b",
     prompt: "",
+    loading: false,
+    models: [],
     results: [],
   });
 
-  const models = [
-    { id: "llama-3.1-8b", name: "Llama 3.1 8B", provider: "Baseten", costPer1k: 0.0003 },
-    { id: "llama-3.1-70b", name: "Llama 3.1 70B", provider: "Baseten", costPer1k: 0.0008 },
-    { id: "qwen-2.5-72b", name: "Qwen 2.5 72B", provider: "Baseten", costPer1k: 0.0006 },
-    { id: "deepseek-r1", name: "DeepSeek R1", provider: "Baseten", costPer1k: 0.0002 },
+  const models: Array<{ id: string; name: string; provider: string }> = [
+    { id: "llama-3.1-8b", name: "Llama 3.1 8B", provider: "Baseten" },
+    { id: "llama-3.1-70b", name: "Llama 3.1 70B", provider: "Baseten" },
+    { id: "qwen-2.5-72b", name: "Qwen 2.5 72B", provider: "Baseten" },
+    { id: "deepseek-r1", name: "DeepSeek R1", provider: "Baseten" },
   ];
 
   const benchmarks = [
@@ -39,6 +53,8 @@ export default component$(() => {
     { name: "GSM8K", llama8b: 50.5, qwen72b: 89.3, llama70b: 83.1, deepseek: 78.4 },
     { name: "TruthfulQA", llama8b: 42.8, qwen72b: 58.1, llama70b: 52.3, deepseek: 55.7 },
   ];
+
+  const displayModels = models;
 
   const getModelBench = (modelId: string, bench: typeof benchmarks[0]) => {
     const map: Record<string, keyof typeof bench> = {
@@ -50,15 +66,12 @@ export default component$(() => {
     return bench[map[modelId]] as number;
   };
 
-  const modelAData = models.find((m) => m.id === state.modelA)!;
-  const modelBData = models.find((m) => m.id === state.modelB)!;
+  const modelAData = displayModels.find((m) => m.id === state.modelA) || displayModels[0];
+  const modelBData = displayModels.find((m) => m.id === state.modelB) || displayModels[1];
 
   return (
     <div class="space-y-6">
-      <div>
-        <h1 class="text-3xl font-bold tracking-tight">Model Comparison</h1>
-        <p class="text-text-muted">Compare models side-by-side</p>
-      </div>
+      <PageHeader title="Model Comparison" description="Compare models side-by-side" />
 
       <div class="grid gap-4 md:grid-cols-2">
         <Card>
@@ -66,23 +79,18 @@ export default component$(() => {
             <CardTitle>Model A</CardTitle>
           </CardHeader>
           <CardContent>
-            <select
-              class="w-full rounded-lg border border-surface-light bg-surface px-3 py-2 text-sm"
+            <Select
               value={state.modelA}
               onChange$={(e) => { state.modelA = (e.target as HTMLSelectElement).value; }}
             >
-              {models.map((m) => (
+              {displayModels.map((m) => (
                 <option key={m.id} value={m.id}>{m.name}</option>
               ))}
-            </select>
+            </Select>
             <div class="mt-4 space-y-2">
               <div class="flex justify-between text-sm">
                 <span class="text-text-muted">Provider</span>
-                <span>{modelAData.provider}</span>
-              </div>
-              <div class="flex justify-between text-sm">
-                <span class="text-text-muted">Cost per 1K tokens</span>
-                <span>${modelAData.costPer1k.toFixed(4)}</span>
+                <span>{modelAData?.provider || "—"}</span>
               </div>
             </div>
           </CardContent>
@@ -93,23 +101,18 @@ export default component$(() => {
             <CardTitle>Model B</CardTitle>
           </CardHeader>
           <CardContent>
-            <select
-              class="w-full rounded-lg border border-surface-light bg-surface px-3 py-2 text-sm"
+            <Select
               value={state.modelB}
               onChange$={(e) => { state.modelB = (e.target as HTMLSelectElement).value; }}
             >
-              {models.map((m) => (
+              {displayModels.map((m) => (
                 <option key={m.id} value={m.id}>{m.name}</option>
               ))}
-            </select>
+            </Select>
             <div class="mt-4 space-y-2">
               <div class="flex justify-between text-sm">
                 <span class="text-text-muted">Provider</span>
-                <span>{modelBData.provider}</span>
-              </div>
-              <div class="flex justify-between text-sm">
-                <span class="text-text-muted">Cost per 1K tokens</span>
-                <span>${modelBData.costPer1k.toFixed(4)}</span>
+                <span>{modelBData?.provider || "—"}</span>
               </div>
             </div>
           </CardContent>
@@ -129,19 +132,15 @@ export default component$(() => {
               return (
                 <div key={bench.name} class="space-y-2">
                   <div class="flex items-center justify-between">
-                    <span class="font-medium">{bench.name}</span>
-                    <div class="flex gap-4 text-sm">
-                      <span class="text-primary">{modelAData.name}: {aScore}%</span>
-                      <span class="text-success">{modelBData.name}: {bScore}%</span>
+                    <span class="text-sm font-medium">{bench.name}</span>
+                    <div class="flex gap-4 text-xs text-text-muted">
+                      <span>{modelAData.name}: <span class="text-text font-medium">{aScore}%</span></span>
+                      <span>{modelBData.name}: <span class="text-text font-medium">{bScore}%</span></span>
                     </div>
                   </div>
                   <div class="grid grid-cols-2 gap-2">
-                    <div class="space-y-1">
-                      <Progress value={(aScore / 100) * 100} />
-                    </div>
-                    <div class="space-y-1">
-                      <Progress value={(bScore / 100) * 100} />
-                    </div>
+                    <Progress value={(aScore / 100) * 100} />
+                    <Progress value={(bScore / 100) * 100} />
                   </div>
                 </div>
               );
@@ -157,9 +156,9 @@ export default component$(() => {
         <CardContent>
           <div class="space-y-4">
             <div class="space-y-2">
-              <label class="text-sm font-medium">Prompt</label>
-              <textarea
-                class="flex min-h-[100px] w-full rounded-lg border border-surface-light bg-surface px-3 py-2 text-sm"
+              <label class="text-sm font-medium text-text-muted">Prompt</label>
+              <Textarea
+                class="min-h-[100px]"
                 placeholder="Enter a prompt to compare both models..."
                 value={state.prompt}
                 onInput$={(e) => { state.prompt = (e.target as HTMLTextAreaElement).value; }}
@@ -167,20 +166,20 @@ export default component$(() => {
             </div>
             <Button>Run Comparison</Button>
 
-            <div class="grid gap-4 md:grid-cols-2 pt-4">
-              <div class="rounded-lg border border-surface-light bg-surface/50 p-4">
+            <div class="grid gap-4 md:grid-cols-2 pt-2">
+              <div class="rounded-lg border border-surface-light bg-surface-elevated p-4">
                 <div class="mb-2 flex items-center justify-between">
-                  <span class="font-medium">{modelAData.name}</span>
-                  <Badge variant="outline">Model A</Badge>
+                  <span class="text-sm font-medium">{modelAData.name}</span>
+                  <StatusBadge status="Model A" />
                 </div>
                 <div class="min-h-[80px] text-sm text-text-muted">
                   Output will appear here...
                 </div>
               </div>
-              <div class="rounded-lg border border-surface-light bg-surface/50 p-4">
+              <div class="rounded-lg border border-surface-light bg-surface-elevated p-4">
                 <div class="mb-2 flex items-center justify-between">
-                  <span class="font-medium">{modelBData.name}</span>
-                  <Badge variant="outline">Model B</Badge>
+                  <span class="text-sm font-medium">{modelBData.name}</span>
+                  <StatusBadge status="Model B" />
                 </div>
                 <div class="min-h-[80px] text-sm text-text-muted">
                   Output will appear here...
